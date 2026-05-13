@@ -8,23 +8,26 @@ Version React du jeu Flybot, jouable dans le navigateur.
 - Contrôle vertical souris + tactile.
 - Obstacles, score, et bonus : Fleur / Soleil / Abeille.
 
-## Tester en ligne (le plus simple)
-### Option A — Netlify Drop (sans code)
+## Déploiement automatique GitHub Pages (prêt à l’emploi)
+Le workflow `.github/workflows/deploy-pages.yml` publie automatiquement le jeu à chaque push sur `main`.
+
+### Activer GitHub Pages
+1. Pousse le dépôt sur GitHub.
+2. Va dans **Settings > Pages**.
+3. Dans **Build and deployment**, choisis **Source: GitHub Actions**.
+4. Push sur `main` (ou lance le workflow manuellement depuis l’onglet **Actions**).
+5. L’URL sera affichée dans le job `Deploy to GitHub Pages`.
+
+## Tester en ligne (sans setup)
+### Option A — Netlify Drop
 1. Va sur https://app.netlify.com/drop
-2. Glisse-dépose le dossier du projet (ou un zip contenant `index.html`).
-3. Netlify te donne immédiatement une URL publique pour tester le jeu.
+2. Glisse-dépose le dossier du projet (ou zip).
+3. Récupère l’URL publique.
 
 ### Option B — Vercel
 1. Pousse le repo sur GitHub.
 2. Va sur https://vercel.com/new
 3. Importe le repo puis clique **Deploy**.
-4. Récupère l’URL fournie (ex: `https://flybot.vercel.app`).
-
-### Option C — GitHub Pages
-1. Pousse le repo sur GitHub.
-2. Dans **Settings > Pages**.
-3. Source: branche `main` (root).
-4. Ouvre l’URL Pages générée.
 
 ## Tester en local
 Ouvrir `index.html` dans un navigateur (connexion internet requise pour charger React/Babel via CDN).
