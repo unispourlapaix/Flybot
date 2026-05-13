@@ -7,6 +7,7 @@ Retour au mode **3D isométrique** avec un design plus **montagneux** et une amb
 - Forêt latérale animée (gauche/droite) avec arbres stylisés en couches géométriques.
 - Arrière-plan montagneux type Mont-Blanc : pics plus contrastés (faces d’ombre) et neiges blanches plus marquées.
 - Gameplay conservé : vent, inertie, obstacles et bonus (`Fleur`, `Soleil`, `Abeille`).
+- Papillon redessiné pour mieux suivre la perspective isométrique du sol.
 - **Mode Cool** : moins d’obstacles, vitesse plus douce, lecture plus relax.
 
 ## Contrôles
