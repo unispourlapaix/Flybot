@@ -39,8 +39,8 @@
           const rand=(a,b)=>Math.random()*(b-a)+a;
           const iso=(x,y,z=0)=>({x:(x-y)*1.15+480,y:(x+y)*0.58-z+52});
 
-          for(let i=0;i<7;i++) state.obstacles.push({x:rand(840,1320),y:rand(120,430),speed:rand(1.2,2.4)});
-          for(let i=0;i<4;i++) state.bonuses.push({x:rand(900,1340),y:rand(110,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
+          for(let i=0;i<4;i++) state.obstacles.push({x:rand(900,1380),y:rand(130,420),speed:rand(0.9,1.7)});
+          for(let i=0;i<5;i++) state.bonuses.push({x:rand(880,1360),y:rand(100,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
 
           const setY = (clientY) => {
             const r=c.getBoundingClientRect();
@@ -129,7 +129,7 @@
           const loop=()=>{
             if(!state.gameOver){
               state.t++;
-              state.wind=Math.sin(state.t*0.01)*0.05;
+              state.wind=Math.sin(state.t*0.008)*0.035;
               const b=state.butterfly;
               b.vy += ((state.touchY-b.y)*0.008*b.agility)+state.wind;
               b.vy *= 0.94;
@@ -139,7 +139,7 @@
               if(agileTimer>0) agileTimer--; else b.agility=1;
               if(shieldTimer>0) shieldTimer--; else b.shield=false;
 
-              const speedMul=slowTimer>0?0.6:1;
+              const speedMul=slowTimer>0?0.5:0.85;
               for(const o of state.obstacles){
                 o.x -= o.speed*speedMul;
                 if(o.x<-90){o.x=rand(980,1360);o.y=rand(120,430);}
@@ -169,7 +169,7 @@
         }, []);
 
         return <>
-          <div className="ui">Score: {score} | Bonus: {bonus}</div>
+          <div className="ui">Mode Cool • Score: {score} | Bonus: {bonus}</div>
           <canvas ref={canvasRef} width="960" height="540" />
         </>;
       }
