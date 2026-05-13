@@ -63,36 +63,36 @@
 
 
           const drawMountains = () => {
-            const ridge = (x, y, w, h, c, shadow) => {
-              ctx.fillStyle=c; ctx.beginPath();
-              ctx.moveTo(x,y); ctx.lineTo(x+w*0.5,y-h); ctx.lineTo(x+w,y); ctx.closePath(); ctx.fill();
-              // face d'ombre pour contraste Mont-Blanc
-              ctx.fillStyle=shadow; ctx.beginPath();
-              ctx.moveTo(x+w*0.5,y-h); ctx.lineTo(x+w,y); ctx.lineTo(x+w*0.62,y-10); ctx.closePath(); ctx.fill();
+            // montagnes ancrées au plan isométrique (même logique de projection)
+            const ridgeIso = (gx, gy, h, w, cTop, cShadow) => {
+              const p = iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
+              ctx.fillStyle=cTop; ctx.beginPath();
+              ctx.moveTo(p.x-w, p.y+8); ctx.lineTo(p.x, p.y-h); ctx.lineTo(p.x+w, p.y+8); ctx.closePath(); ctx.fill();
+              ctx.fillStyle=cShadow; ctx.beginPath();
+              ctx.moveTo(p.x, p.y-h); ctx.lineTo(p.x+w, p.y+8); ctx.lineTo(p.x+w*0.52, p.y-6); ctx.closePath(); ctx.fill();
             };
-            ridge(20,210,260,145,'#6b7f8e','#445563');
-            ridge(160,230,320,185,'#5f7484','#3e4f5d');
-            ridge(340,205,340,195,'#708696','#4a5b69');
-            ridge(580,228,300,170,'#637988','#404f5d');
-            ridge(730,216,250,150,'#738896','#4a5b68');
 
-            // Neiges blanches bien contrastées
+            ridgeIso(2.0,-1.8,120,90,'#7fbe8e','#5b8f6b');
+            ridgeIso(5.5,-2.2,150,110,'#74b484','#4f815f');
+            ridgeIso(8.8,-2.4,180,120,'#86c796','#5d956f');
+            ridgeIso(12.2,-2.0,145,100,'#78b988','#548765');
+            ridgeIso(15.4,-1.7,118,84,'#8aca98','#629a72');
+
+            // neiges claires moins grises
             ctx.fillStyle='#ffffff';
-            ctx.beginPath(); ctx.moveTo(500,35); ctx.lineTo(560,130); ctx.lineTo(440,130); ctx.closePath(); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(360,55); ctx.lineTo(402,124); ctx.lineTo(318,124); ctx.closePath(); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(655,72); ctx.lineTo(690,132); ctx.lineTo(620,132); ctx.closePath(); ctx.fill();
+            const s1=iso(8.8*44 + (state.t*0.16)%44,-2.4*44,0);
+            ctx.beginPath(); ctx.moveTo(s1.x,s1.y-180); ctx.lineTo(s1.x+40,s1.y-110); ctx.lineTo(s1.x-40,s1.y-110); ctx.closePath(); ctx.fill();
+            const s2=iso(5.5*44 + (state.t*0.16)%44,-2.2*44,0);
+            ctx.beginPath(); ctx.moveTo(s2.x,s2.y-150); ctx.lineTo(s2.x+32,s2.y-96); ctx.lineTo(s2.x-32,s2.y-96); ctx.closePath(); ctx.fill();
 
-            // Crêtes glacées
-            ctx.strokeStyle='#dff4ff'; ctx.lineWidth=2;
-            ctx.beginPath(); ctx.moveTo(500,35); ctx.lineTo(540,95); ctx.moveTo(500,35); ctx.lineTo(470,100); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(360,55); ctx.lineTo(382,98); ctx.moveTo(655,72); ctx.lineTo(675,108); ctx.stroke();
+            ctx.strokeStyle='#e8fff2'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(s1.x,s1.y-180); ctx.lineTo(s1.x+22,s1.y-138); ctx.moveTo(s1.x,s1.y-180); ctx.lineTo(s1.x-18,s1.y-142); ctx.stroke();
 
-            // voile atmosphérique pour passer visuellement par-dessus le sol
-            const mist = ctx.createLinearGradient(0,140,0,240);
-            mist.addColorStop(0,'rgba(240,252,255,0.32)');
-            mist.addColorStop(1,'rgba(240,252,255,0.0)');
+            const mist = ctx.createLinearGradient(0,130,0,245);
+            mist.addColorStop(0,'rgba(235,255,240,0.28)');
+            mist.addColorStop(1,'rgba(235,255,240,0.0)');
             ctx.fillStyle = mist;
-            ctx.fillRect(0,130,960,120);
+            ctx.fillRect(0,120,960,130);
           };
 
           const drawSpringFlowers = () => {
