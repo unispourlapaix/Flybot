@@ -8,26 +8,30 @@ Version React du jeu Flybot, jouable dans le navigateur.
 - Contrôle vertical souris + tactile.
 - Obstacles, score, et bonus : Fleur / Soleil / Abeille.
 
-## Déploiement automatique GitHub Pages (prêt à l’emploi)
-Le workflow `.github/workflows/deploy-pages.yml` publie automatiquement le jeu à chaque push sur `main`.
+## Déployer sur GitHub (GitHub Pages)
 
-### Activer GitHub Pages
-1. Pousse le dépôt sur GitHub.
+### 1) Pousser le projet sur GitHub
+```bash
+git init
+git add .
+git commit -m "Initial Flybot"
+git branch -M main
+git remote add origin https://github.com/<ton-user>/<ton-repo>.git
+git push -u origin main
+```
+
+### 2) Activer GitHub Pages
+1. Ouvre ton dépôt GitHub.
 2. Va dans **Settings > Pages**.
 3. Dans **Build and deployment**, choisis **Source: GitHub Actions**.
-4. Push sur `main` (ou lance le workflow manuellement depuis l’onglet **Actions**).
-5. L’URL sera affichée dans le job `Deploy to GitHub Pages`.
 
-## Tester en ligne (sans setup)
-### Option A — Netlify Drop
-1. Va sur https://app.netlify.com/drop
-2. Glisse-dépose le dossier du projet (ou zip).
-3. Récupère l’URL publique.
+### 3) Déploiement automatique
+Le workflow `.github/workflows/deploy-pages.yml` déploie automatiquement le site à chaque push sur `main`.
+Tu peux aussi le lancer manuellement depuis l’onglet **Actions**.
 
-### Option B — Vercel
-1. Pousse le repo sur GitHub.
-2. Va sur https://vercel.com/new
-3. Importe le repo puis clique **Deploy**.
+### 4) Récupérer l’URL
+Après un run réussi, l’URL publique est visible dans le job **Deploy to GitHub Pages**.
+Format habituel : `https://<ton-user>.github.io/<ton-repo>/`
 
 ## Tester en local
 Ouvrir `index.html` dans un navigateur (connexion internet requise pour charger React/Babel via CDN).
