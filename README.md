@@ -1,16 +1,12 @@
-# Flybot (3D isométrique pixel art)
+# Flybot React (3D isométrique pixel art)
 
-Jeu arcade coloré où un petit papillon vole dans un monde isométrique et évite des obstacles.
+Version React du jeu Flybot, jouable dans le navigateur.
 
-## Gameplay
-- Le papillon est poussé par le vent (inertie légère).
-- Contrôle vertical à la souris ou au tactile.
-- Éviter les obstacles pour augmenter le score.
+## Fonctionnalités
+- Rendu isométrique pixel art coloré sur canvas.
+- Papillon poussé par le vent avec inertie.
+- Contrôle vertical souris + tactile.
+- Obstacles, score, et bonus : Fleur / Soleil / Abeille.
 
-## Bonus
-- **Fleur** : améliore l’agilité pendant un court moment.
-- **Soleil** : ralentit les obstacles.
-- **Abeille** : active un bouclier.
-
-## Lancer le jeu
-Ouvrir `index.html` dans un navigateur.
+## Lancer
+Ouvrir `index.html` dans un navigateur (connexion internet requise pour charger React/Babel via CDN).

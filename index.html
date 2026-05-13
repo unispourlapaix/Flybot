@@ -1,148 +1,154 @@
 <!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Flybot — Papillon Isométrique</title>
-  <style>
-    body { margin:0; background:#87d7ff; font-family:system-ui,sans-serif; overflow:hidden; }
-    #ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; }
-    canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; }
-  </style>
-</head>
-<body>
-  <div id="ui">Score: <span id="score">0</span> | Bonus: <span id="bonus">Aucun</span></div>
-  <canvas id="game" width="960" height="540"></canvas>
-  <script>
-    const c = document.getElementById('game');
-    const ctx = c.getContext('2d');
-    const scoreEl = document.getElementById('score');
-    const bonusEl = document.getElementById('bonus');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flybot React</title>
+    <style>
+      body { margin:0; background:#87d7ff; font-family:system-ui,sans-serif; overflow:hidden; }
+      #root { width:100vw; height:100vh; }
+      .ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
+      canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
 
-    const state = {
-      t:0, score:0, gameOver:false,
-      butterfly:{x:200,y:270,vy:0,shield:false,agility:1},
-      wind:0, obstacles:[], bonuses:[], touchY:270
-    };
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    const rand=(a,b)=>Math.random()*(b-a)+a;
-    const iso=(x,y,z=0)=>({x:(x-y)*1.1+480,y:(x+y)*0.55-z+70});
+    <script type="text/babel">
+      const { useEffect, useRef, useState } = React;
 
-    function spawnObstacle(){
-      state.obstacles.push({x:rand(800,1200), y:rand(140,420), w:32, h:70, speed:rand(2.5,4.5)});
-    }
-    function spawnBonus(){
-      const types=['Fleur','Soleil','Abeille'];
-      state.bonuses.push({x:rand(900,1250), y:rand(120,430), type:types[(Math.random()*3)|0], size:18});
-    }
-    for(let i=0;i<6;i++) spawnObstacle();
-    for(let i=0;i<3;i++) spawnBonus();
+      function FlybotGame() {
+        const canvasRef = useRef(null);
+        const [score, setScore] = useState(0);
+        const [bonus, setBonus] = useState('Aucun');
 
-    let pointerDown=false;
-    function setY(clientY){
-      const r=c.getBoundingClientRect();
-      state.touchY = (clientY-r.top)*(c.height/r.height);
-    }
-    addEventListener('mousemove',e=>setY(e.clientY));
-    addEventListener('mousedown',e=>{pointerDown=true; setY(e.clientY);});
-    addEventListener('mouseup',()=>pointerDown=false);
-    addEventListener('touchstart',e=>{pointerDown=true; setY(e.touches[0].clientY);},{passive:true});
-    addEventListener('touchmove',e=>setY(e.touches[0].clientY),{passive:true});
-    addEventListener('touchend',()=>pointerDown=false,{passive:true});
+        useEffect(() => {
+          const c = canvasRef.current;
+          const ctx = c.getContext('2d');
+          let raf;
 
-    function pixelRect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),w,h)}
+          const state = {
+            t: 0,
+            gameOver: false,
+            score: 0,
+            butterfly: { x: 200, y: 270, vy: 0, shield: false, agility: 1 },
+            touchY: 270,
+            wind: 0,
+            obstacles: [],
+            bonuses: []
+          };
 
-    function drawGround(){
-      for(let gx=0;gx<14;gx++) for(let gy=0;gy<10;gy++){
-        const p=iso(gx*46 + (state.t*0.25)%46, gy*46, 0);
-        ctx.fillStyle=((gx+gy)%2)?'#72c95f':'#81d66a';
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+25,p.y+12); ctx.lineTo(p.x,p.y+24); ctx.lineTo(p.x-25,p.y+12);
-        ctx.closePath(); ctx.fill();
+          const rand = (a,b) => Math.random() * (b-a) + a;
+          const iso = (x,y,z=0) => ({ x:(x-y)*1.1+480, y:(x+y)*0.55-z+70 });
+
+          const spawnObstacle = () => state.obstacles.push({ x:rand(800,1200), y:rand(140,420), speed:rand(2.5,4.5) });
+          const spawnBonus = () => {
+            const types = ['Fleur','Soleil','Abeille'];
+            state.bonuses.push({ x:rand(900,1250), y:rand(120,430), type:types[(Math.random()*3)|0] });
+          };
+          for(let i=0;i<6;i++) spawnObstacle();
+          for(let i=0;i<3;i++) spawnBonus();
+
+          const onPointer = (clientY) => {
+            const r = c.getBoundingClientRect();
+            state.touchY = (clientY-r.top)*(c.height/r.height);
+          };
+          const mm = (e)=>onPointer(e.clientY);
+          const ts = (e)=>onPointer(e.touches[0].clientY);
+          window.addEventListener('mousemove', mm);
+          window.addEventListener('touchstart', ts, { passive:true });
+          window.addEventListener('touchmove', ts, { passive:true });
+
+          const pixelRect = (x,y,w,h,color)=>{ ctx.fillStyle=color; ctx.fillRect(Math.round(x),Math.round(y),w,h); };
+          const drawGround = () => {
+            for(let gx=0;gx<14;gx++) for(let gy=0;gy<10;gy++) {
+              const p=iso(gx*46 + (state.t*0.25)%46, gy*46, 0);
+              ctx.fillStyle=((gx+gy)%2)?'#72c95f':'#81d66a';
+              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+25,p.y+12); ctx.lineTo(p.x,p.y+24); ctx.lineTo(p.x-25,p.y+12); ctx.closePath(); ctx.fill();
+            }
+          };
+          const drawButterfly = (b) => {
+            const p=iso(b.x*0.6,b.y*0.6,60);
+            pixelRect(p.x-2,p.y-10,4,18,'#2f2f2f');
+            pixelRect(p.x-18,p.y-8,12,12,'#ff67c4'); pixelRect(p.x+6,p.y-8,12,12,'#ff67c4');
+            pixelRect(p.x-16,p.y+2,10,10,'#ffd166'); pixelRect(p.x+6,p.y+2,10,10,'#ffd166');
+            if (b.shield) { ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,22,0,Math.PI*2); ctx.stroke(); }
+          };
+          const drawObstacle=(o)=>{ const p=iso(o.x*0.6,o.y*0.6,55); pixelRect(p.x-12,p.y-40,24,42,'#7d4b2f'); pixelRect(p.x-16,p.y-46,32,8,'#5fbf5f'); };
+          const drawBonus=(b)=>{
+            const p=iso(b.x*0.6,b.y*0.6,50);
+            if(b.type==='Fleur'){ pixelRect(p.x-4,p.y,8,10,'#4caf50'); pixelRect(p.x-10,p.y-8,20,8,'#ff4da6'); }
+            if(b.type==='Soleil'){ pixelRect(p.x-8,p.y-8,16,16,'#ffd54f'); }
+            if(b.type==='Abeille'){ pixelRect(p.x-10,p.y-5,20,10,'#ffd166'); pixelRect(p.x-4,p.y-5,8,10,'#222'); }
+          };
+
+          let slowTimer=0, shieldTimer=0, agileTimer=0;
+          const applyBonus=(type)=>{
+            setBonus(type);
+            if(type==='Fleur'){ agileTimer=300; state.butterfly.agility=1.7; }
+            if(type==='Soleil'){ slowTimer=300; }
+            if(type==='Abeille'){ shieldTimer=300; state.butterfly.shield=true; }
+          };
+
+          const loop = () => {
+            if(!state.gameOver){
+              state.t++;
+              state.wind = Math.sin(state.t*0.02)*0.15;
+              const b=state.butterfly;
+              b.vy += ((state.touchY-b.y)*0.015*b.agility)+state.wind;
+              b.vy *= 0.92;
+              b.y = Math.max(70,Math.min(470,b.y+b.vy));
+
+              if(slowTimer>0) slowTimer--; else if(bonus==='Soleil') setBonus('Aucun');
+              if(agileTimer>0) agileTimer--; else b.agility=1;
+              if(shieldTimer>0) shieldTimer--; else b.shield=false;
+
+              const speedMul = slowTimer>0 ? 0.55 : 1;
+              for(const o of state.obstacles){
+                o.x -= o.speed*speedMul;
+                if(o.x<-80){ o.x=rand(980,1280); o.y=rand(120,430); }
+                if(Math.abs(o.x-b.x)<36 && Math.abs(o.y-b.y)<44){ if(b.shield){ b.shield=false; shieldTimer=0; o.x=-100; } else state.gameOver=true; }
+              }
+              for(const bo of state.bonuses){
+                bo.x -= 2.6;
+                if(bo.x<-60){ bo.x=rand(980,1300); bo.y=rand(110,440); bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0]; }
+                if(Math.abs(bo.x-b.x)<28 && Math.abs(bo.y-b.y)<34){ applyBonus(bo.type); bo.x=-80; }
+              }
+
+              state.score++; setScore(Math.floor(state.score/10));
+            }
+
+            ctx.clearRect(0,0,c.width,c.height);
+            drawGround();
+            [...state.obstacles].sort((a,b)=>a.y-b.y).forEach(drawObstacle);
+            state.bonuses.forEach(drawBonus);
+            drawButterfly(state.butterfly);
+            if(state.gameOver){ ctx.fillStyle='#000a'; ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle='#fff'; ctx.font='bold 48px sans-serif'; ctx.fillText('Game Over',370,250); }
+            raf=requestAnimationFrame(loop);
+          };
+
+          loop();
+          return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('mousemove', mm);
+            window.removeEventListener('touchstart', ts);
+            window.removeEventListener('touchmove', ts);
+          };
+        }, []);
+
+        return (
+          <>
+            <div className="ui">Score: {score} | Bonus: {bonus}</div>
+            <canvas ref={canvasRef} id="game" width="960" height="540" />
+          </>
+        );
       }
-    }
 
-    function drawButterfly(b){
-      const p=iso(b.x*0.6,b.y*0.6,60);
-      pixelRect(p.x-2,p.y-10,4,18,'#2f2f2f');
-      pixelRect(p.x-18,p.y-8,12,12,'#ff67c4');
-      pixelRect(p.x+6,p.y-8,12,12,'#ff67c4');
-      pixelRect(p.x-16,p.y+2,10,10,'#ffd166');
-      pixelRect(p.x+6,p.y+2,10,10,'#ffd166');
-      if(b.shield){
-        ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3;
-        ctx.beginPath(); ctx.arc(p.x,p.y,22,0,Math.PI*2); ctx.stroke();
-      }
-    }
-
-    function drawObstacle(o){
-      const p=iso(o.x*0.6,o.y*0.6,55);
-      pixelRect(p.x-12,p.y-40,24,42,'#7d4b2f');
-      pixelRect(p.x-16,p.y-46,32,8,'#5fbf5f');
-    }
-
-    function drawBonus(b){
-      const p=iso(b.x*0.6,b.y*0.6,50);
-      if(b.type==='Fleur'){ pixelRect(p.x-4,p.y,8,10,'#4caf50'); pixelRect(p.x-10,p.y-8,20,8,'#ff4da6'); }
-      if(b.type==='Soleil'){ pixelRect(p.x-8,p.y-8,16,16,'#ffd54f'); }
-      if(b.type==='Abeille'){ pixelRect(p.x-10,p.y-5,20,10,'#ffd166'); pixelRect(p.x-4,p.y-5,8,10,'#222'); }
-    }
-
-    let slowTimer=0, shieldTimer=0, agileTimer=0;
-    function applyBonus(type){
-      bonusEl.textContent=type;
-      if(type==='Fleur'){agileTimer=300; state.butterfly.agility=1.7;}
-      if(type==='Soleil'){slowTimer=300;}
-      if(type==='Abeille'){shieldTimer=300; state.butterfly.shield=true;}
-    }
-
-    function update(){
-      if(state.gameOver) return;
-      state.t++;
-      state.wind = Math.sin(state.t*0.02)*0.15;
-      const b = state.butterfly;
-      const targetY = state.touchY;
-      b.vy += ((targetY-b.y)*0.015*b.agility) + state.wind;
-      b.vy *= 0.92;
-      b.y += b.vy;
-      b.y = Math.max(70,Math.min(470,b.y));
-
-      if(slowTimer>0) slowTimer--; if(slowTimer===0 && bonusEl.textContent==='Soleil') bonusEl.textContent='Aucun';
-      if(agileTimer>0) agileTimer--; else b.agility=1;
-      if(shieldTimer>0) shieldTimer--; else b.shield=false;
-
-      const speedMul = slowTimer>0?0.55:1;
-      for(const o of state.obstacles){
-        o.x -= o.speed*speedMul;
-        if(o.x<-80){ o.x=rand(980,1280); o.y=rand(120,430); }
-        if(Math.abs(o.x-b.x)<36 && Math.abs(o.y-b.y)<44){
-          if(b.shield){ b.shield=false; shieldTimer=0; o.x=-100; }
-          else state.gameOver=true;
-        }
-      }
-      for(const bo of state.bonuses){
-        bo.x -= 2.6;
-        if(bo.x<-60){ bo.x=rand(980,1300); bo.y=rand(110,440); bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0]; }
-        if(Math.abs(bo.x-b.x)<28 && Math.abs(bo.y-b.y)<34){ applyBonus(bo.type); bo.x=-80; }
-      }
-
-      state.score += 1; scoreEl.textContent = Math.floor(state.score/10);
-    }
-
-    function render(){
-      ctx.clearRect(0,0,c.width,c.height);
-      drawGround();
-      [...state.obstacles].sort((a,b)=>a.y-b.y).forEach(drawObstacle);
-      state.bonuses.forEach(drawBonus);
-      drawButterfly(state.butterfly);
-      if(state.gameOver){
-        ctx.fillStyle='#000a'; ctx.fillRect(0,0,c.width,c.height);
-        ctx.fillStyle='#fff'; ctx.font='bold 48px sans-serif'; ctx.fillText('Game Over',370,250);
-        ctx.font='22px sans-serif'; ctx.fillText('Recharge la page pour rejouer',340,290);
-      }
-    }
-
-    (function loop(){ update(); render(); requestAnimationFrame(loop); })();
-  </script>
-</body>
+      ReactDOM.createRoot(document.getElementById('root')).render(<FlybotGame />);
+    </script>
+  </body>
 </html>
