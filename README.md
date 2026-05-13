@@ -3,6 +3,7 @@
 Retour au mode **3D isométrique** avec un design plus **montagneux** et une ambiance **printemps fleuri**.
 
 ## Nouveautés
+- Tous les 100 points, une fleur spéciale apparaît : la butiner donne +10 000 points, puis la partie continue normalement.
 - Sol isométrique complet (couverture totale de la scène) : prairie organique, sentier naturel et petite zone d’eau.
 - Forêt latérale animée (gauche/droite) avec arbres stylisés en couches géométriques.
 - Animations des arbres et fleurs recalées sur la grille isométrique du sol (cohérence perspective).

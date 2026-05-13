@@ -34,7 +34,7 @@
           const state = {
             t:0, score:0, gameOver:false,
             butterfly:{x:200,y:270,vy:0,shield:false,agility:1},
-            wind:0, obstacles:[], bonuses:[], touchY:270
+            wind:0, obstacles:[], bonuses:[], touchY:270, megaFlower:null, nextFlowerScore:100
           };
           const rand=(a,b)=>Math.random()*(b-a)+a;
           const iso=(x,y,z=0)=>({x:(x-y)*1.15+480,y:(x+y)*0.58-z+52});
@@ -183,6 +183,36 @@
             drawDiamond(p.x+13,p.y+3,13,11,'#f5b041');
             drawDiamond(p.x-13,p.y+3,14,12,'#1a1a1a');
             drawDiamond(p.x+13,p.y+3,14,12,'#1a1a1a');
+
+          const drawMegaFlower=(f)=>{
+            if(!f) return;
+            const p=iso(f.x*0.6,f.y*0.6,58);
+            // grosse fleur spéciale des 100 points
+            px(p.x-3,p.y+2,6,14,'#4caf50');
+            drawDiamond(p.x,p.y-8,14,10,'#ff4da6');
+            drawDiamond(p.x-8,p.y-4,8,6,'#ffd166');
+            drawDiamond(p.x+8,p.y-4,8,6,'#ffd166');
+          };
+
+              
+              const scoreNow = Math.floor(state.score/12);
+              if(!state.megaFlower && scoreNow >= state.nextFlowerScore){
+                state.megaFlower = { x: rand(930,1250), y: rand(170,380) };
+                state.nextFlowerScore += 100;
+              }
+              if(state.megaFlower){
+                state.megaFlower.x -= 0.7; // butinage calme
+                if(Math.abs(state.megaFlower.x-b.x)<34 && Math.abs(state.megaFlower.y-b.y)<38){
+                  state.score += 10000; // +10k
+                  setBonus('Fleur +10k');
+                  state.megaFlower = null;
+                } else if(state.megaFlower.x < -90){
+                  state.megaFlower = null;
+                }
+              }
+
+
+            drawMegaFlower(state.megaFlower);
             drawDiamond(p.x-13,p.y+3,10,8,'#f5b041');
             drawDiamond(p.x+13,p.y+3,10,8,'#f5b041');
 
