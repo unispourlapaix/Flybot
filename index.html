@@ -86,6 +86,13 @@
             ctx.strokeStyle='#dff4ff'; ctx.lineWidth=2;
             ctx.beginPath(); ctx.moveTo(500,35); ctx.lineTo(540,95); ctx.moveTo(500,35); ctx.lineTo(470,100); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(360,55); ctx.lineTo(382,98); ctx.moveTo(655,72); ctx.lineTo(675,108); ctx.stroke();
+
+            // voile atmosphérique pour passer visuellement par-dessus le sol
+            const mist = ctx.createLinearGradient(0,140,0,240);
+            mist.addColorStop(0,'rgba(240,252,255,0.32)');
+            mist.addColorStop(1,'rgba(240,252,255,0.0)');
+            ctx.fillStyle = mist;
+            ctx.fillRect(0,130,960,120);
           };
 
           const drawSpringFlowers = () => {
@@ -114,7 +121,7 @@
           };
 
           const drawGround = () => {
-            for(let gx=0;gx<16;gx++) for(let gy=0;gy<11;gy++){
+            for(let gx=-2;gx<20;gx++) for(let gy=-1;gy<13;gy++){
               const wx = gx*44 + (state.t*0.16)%44;
               const wy = gy*44;
               const p=iso(wx, wy, 0);
@@ -227,8 +234,8 @@
             }
 
             ctx.clearRect(0,0,960,540);
-            drawMountains();
             drawGround();
+            drawMountains();
             drawForestEdge('left');
             drawForestEdge('right');
             [...state.obstacles].sort((a,b)=>a.y-b.y).forEach(drawObstacle);

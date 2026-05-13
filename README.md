@@ -3,9 +3,9 @@
 Retour au mode **3D isométrique** avec un design plus **montagneux** et une ambiance **printemps fleuri**.
 
 ## Nouveautés
-- Sol isométrique retravaillé : prairie organique, sentier naturel et petite zone d’eau (au lieu d’un damier répétitif).
+- Sol isométrique complet (couverture totale de la scène) : prairie organique, sentier naturel et petite zone d’eau.
 - Forêt latérale animée (gauche/droite) avec arbres stylisés en couches géométriques.
-- Arrière-plan montagneux type Mont-Blanc : pics plus contrastés (faces d’ombre) et neiges blanches plus marquées.
+- Montagnes type Mont-Blanc rendues par-dessus visuellement (contraste fort + voile atmosphérique).
 - Gameplay conservé : vent, inertie, obstacles et bonus (`Fleur`, `Soleil`, `Abeille`).
 - Papillon redessiné pour mieux suivre la perspective isométrique du sol.
 - **Mode Cool** : moins d’obstacles, vitesse plus douce, lecture plus relax.
