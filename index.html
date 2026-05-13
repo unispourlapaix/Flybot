@@ -30,6 +30,8 @@
           const c = canvasRef.current;
           const ctx = c.getContext('2d');
           let raf;
+          const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+          c.width = 960 * dpr; c.height = 540 * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
 
           const state = {
             t: 0,
@@ -64,6 +66,8 @@
           window.addEventListener('touchmove', ts, { passive:true });
 
           const pixelRect = (x,y,w,h,color)=>{ ctx.fillStyle=color; ctx.fillRect(Math.round(x),Math.round(y),w,h); };
+          const outlineRect = (x,y,w,h,color='#1f1f1f')=>{ ctx.strokeStyle=color; ctx.lineWidth=1; ctx.strokeRect(Math.round(x)+0.5,Math.round(y)+0.5,w,h); };
+          const drawCirclePx = (x,y,r,color)=>{ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(Math.round(x),Math.round(y),r,0,Math.PI*2); ctx.fill(); };
           const drawGround = () => {
             for(let gx=0;gx<14;gx++) for(let gy=0;gy<10;gy++) {
               const p=iso(gx*46 + (state.t*0.25)%46, gy*46, 0);
@@ -73,12 +77,26 @@
           };
           const drawButterfly = (b) => {
             const p=iso(b.x*0.6,b.y*0.6,60);
-            pixelRect(p.x-2,p.y-10,4,18,'#2f2f2f');
-            pixelRect(p.x-18,p.y-8,12,12,'#ff67c4'); pixelRect(p.x+6,p.y-8,12,12,'#ff67c4');
-            pixelRect(p.x-16,p.y+2,10,10,'#ffd166'); pixelRect(p.x+6,p.y+2,10,10,'#ffd166');
-            if (b.shield) { ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,22,0,Math.PI*2); ctx.stroke(); }
+            // Corps cartoon pixel précis
+            pixelRect(p.x-2,p.y-12,4,20,'#2f2f2f');
+            pixelRect(p.x-4,p.y-14,8,4,'#3a3a3a');
+            // Ailes hautes
+            pixelRect(p.x-24,p.y-12,18,14,'#ff5eb8'); outlineRect(p.x-24,p.y-12,18,14);
+            pixelRect(p.x+6,p.y-12,18,14,'#ff5eb8'); outlineRect(p.x+6,p.y-12,18,14);
+            // Ailes basses
+            pixelRect(p.x-20,p.y+2,14,12,'#ffd166'); outlineRect(p.x-20,p.y+2,14,12);
+            pixelRect(p.x+6,p.y+2,14,12,'#ffd166'); outlineRect(p.x+6,p.y+2,14,12);
+            // Motifs cartoon
+            drawCirclePx(p.x-14,p.y-5,2,'#fff'); drawCirclePx(p.x+14,p.y-5,2,'#fff');
+            drawCirclePx(p.x-10,p.y+7,2,'#ff9f1c'); drawCirclePx(p.x+10,p.y+7,2,'#ff9f1c');
+            if (b.shield) { ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,26,0,Math.PI*2); ctx.stroke(); }
           };
-          const drawObstacle=(o)=>{ const p=iso(o.x*0.6,o.y*0.6,55); pixelRect(p.x-12,p.y-40,24,42,'#7d4b2f'); pixelRect(p.x-16,p.y-46,32,8,'#5fbf5f'); };
+          const drawObstacle=(o)=>{ 
+            const p=iso(o.x*0.6,o.y*0.6,55);
+            pixelRect(p.x-12,p.y-40,24,42,'#7d4b2f'); outlineRect(p.x-12,p.y-40,24,42);
+            pixelRect(p.x-18,p.y-48,36,10,'#58c56a'); outlineRect(p.x-18,p.y-48,36,10);
+            pixelRect(p.x-8,p.y-28,6,6,'#9b5f3e'); pixelRect(p.x+2,p.y-16,6,6,'#9b5f3e');
+          };
           const drawBonus=(b)=>{
             const p=iso(b.x*0.6,b.y*0.6,50);
             if(b.type==='Fleur'){ pixelRect(p.x-4,p.y,8,10,'#4caf50'); pixelRect(p.x-10,p.y-8,20,8,'#ff4da6'); }
