@@ -47,7 +47,7 @@
           const rand = (a,b) => Math.random() * (b-a) + a;
           const iso = (x,y,z=0) => ({ x:(x-y)*1.1+480, y:(x+y)*0.55-z+70 });
 
-          const spawnObstacle = () => state.obstacles.push({ x:rand(800,1200), y:rand(140,420), speed:rand(1.2,2.2) });
+          const spawnObstacle = () => state.obstacles.push({ x:rand(800,1200), y:rand(140,420), speed:rand(0.8,1.6) });
           const spawnBonus = () => {
             const types = ['Fleur','Soleil','Abeille'];
             state.bonuses.push({ x:rand(900,1250), y:rand(120,430), type:types[(Math.random()*3)|0] });
@@ -77,19 +77,21 @@
           };
           const drawButterfly = (b) => {
             const p=iso(b.x*0.6,b.y*0.6,60);
-            // Corps cartoon pixel précis
-            pixelRect(p.x-2,p.y-12,4,20,'#2f2f2f');
-            pixelRect(p.x-4,p.y-14,8,4,'#3a3a3a');
-            // Ailes hautes
-            pixelRect(p.x-24,p.y-12,18,14,'#ff5eb8'); outlineRect(p.x-24,p.y-12,18,14);
-            pixelRect(p.x+6,p.y-12,18,14,'#ff5eb8'); outlineRect(p.x+6,p.y-12,18,14);
-            // Ailes basses
-            pixelRect(p.x-20,p.y+2,14,12,'#ffd166'); outlineRect(p.x-20,p.y+2,14,12);
-            pixelRect(p.x+6,p.y+2,14,12,'#ffd166'); outlineRect(p.x+6,p.y+2,14,12);
-            // Motifs cartoon
-            drawCirclePx(p.x-14,p.y-5,2,'#fff'); drawCirclePx(p.x+14,p.y-5,2,'#fff');
-            drawCirclePx(p.x-10,p.y+7,2,'#ff9f1c'); drawCirclePx(p.x+10,p.y+7,2,'#ff9f1c');
-            if (b.shield) { ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,26,0,Math.PI*2); ctx.stroke(); }
+            // Silhouette orientée dans le sens du défilement (vers la droite)
+            pixelRect(p.x-10,p.y-11,14,18,'#2f2f2f'); outlineRect(p.x-10,p.y-11,14,18);
+            pixelRect(p.x+4,p.y-9,10,14,'#3a3a3a'); outlineRect(p.x+4,p.y-9,10,14);
+            // Ailes manga plus longues vers l'arrière
+            pixelRect(p.x-30,p.y-14,20,14,'#ff5eb8'); outlineRect(p.x-30,p.y-14,20,14);
+            pixelRect(p.x-26,p.y+2,18,13,'#ffd166'); outlineRect(p.x-26,p.y+2,18,13);
+            pixelRect(p.x-4,p.y-15,14,13,'#ff88d0'); outlineRect(p.x-4,p.y-15,14,13);
+            pixelRect(p.x-2,p.y+3,12,11,'#ffe08a'); outlineRect(p.x-2,p.y+3,12,11);
+            // Œil manga et antennes
+            drawCirclePx(p.x+10,p.y-3,3,'#ffffff'); drawCirclePx(p.x+11,p.y-3,1,'#1b1b1b');
+            pixelRect(p.x+10,p.y-12,1,4,'#1f1f1f'); pixelRect(p.x+12,p.y-12,1,4,'#1f1f1f');
+            // Effet de vitesse doux
+            ctx.strokeStyle='#ffffff66'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(p.x-34,p.y-4); ctx.lineTo(p.x-48,p.y-4); ctx.stroke();
+            if (b.shield) { ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,28,0,Math.PI*2); ctx.stroke(); }
           };
           const drawObstacle=(o)=>{ 
             const p=iso(o.x*0.6,o.y*0.6,55);
@@ -115,9 +117,9 @@
           const loop = () => {
             if(!state.gameOver){
               state.t++;
-              state.wind = Math.sin(state.t*0.012)*0.06;
+              state.wind = Math.sin(state.t*0.008)*0.04;
               const b=state.butterfly;
-              b.vy += ((state.touchY-b.y)*0.009*b.agility)+state.wind;
+              b.vy += ((state.touchY-b.y)*0.007*b.agility)+state.wind;
               b.vy *= 0.95;
               b.y = Math.max(70,Math.min(470,b.y+b.vy));
 
@@ -132,7 +134,7 @@
                 if(Math.abs(o.x-b.x)<36 && Math.abs(o.y-b.y)<44){ if(b.shield){ b.shield=false; shieldTimer=0; o.x=-100; } else state.gameOver=true; }
               }
               for(const bo of state.bonuses){
-                bo.x -= 1.3;
+                bo.x -= 0.9;
                 if(bo.x<-60){ bo.x=rand(980,1300); bo.y=rand(110,440); bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0]; }
                 if(Math.abs(bo.x-b.x)<28 && Math.abs(bo.y-b.y)<34){ applyBonus(bo.type); bo.x=-80; }
               }
