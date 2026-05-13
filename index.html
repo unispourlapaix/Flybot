@@ -63,15 +63,29 @@
 
 
           const drawMountains = () => {
-            const ridge = (x, y, w, h, c) => { ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+w*0.5,y-h); ctx.lineTo(x+w,y); ctx.closePath(); ctx.fill(); };
-            ridge(40,190,220,120,'#7ea48b');
-            ridge(180,210,280,150,'#6f977e');
-            ridge(380,190,260,135,'#86ae94');
-            ridge(620,215,260,140,'#769f84');
-            ridge(760,200,210,120,'#83ab90');
-            ctx.fillStyle='#f2fff7';
-            ctx.beginPath(); ctx.moveTo(300,70); ctx.lineTo(340,120); ctx.lineTo(260,120); ctx.closePath(); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(500,62); ctx.lineTo(548,128); ctx.lineTo(452,128); ctx.closePath(); ctx.fill();
+            const ridge = (x, y, w, h, c, shadow) => {
+              ctx.fillStyle=c; ctx.beginPath();
+              ctx.moveTo(x,y); ctx.lineTo(x+w*0.5,y-h); ctx.lineTo(x+w,y); ctx.closePath(); ctx.fill();
+              // face d'ombre pour contraste Mont-Blanc
+              ctx.fillStyle=shadow; ctx.beginPath();
+              ctx.moveTo(x+w*0.5,y-h); ctx.lineTo(x+w,y); ctx.lineTo(x+w*0.62,y-10); ctx.closePath(); ctx.fill();
+            };
+            ridge(20,210,260,145,'#6b7f8e','#445563');
+            ridge(160,230,320,185,'#5f7484','#3e4f5d');
+            ridge(340,205,340,195,'#708696','#4a5b69');
+            ridge(580,228,300,170,'#637988','#404f5d');
+            ridge(730,216,250,150,'#738896','#4a5b68');
+
+            // Neiges blanches bien contrastées
+            ctx.fillStyle='#ffffff';
+            ctx.beginPath(); ctx.moveTo(500,35); ctx.lineTo(560,130); ctx.lineTo(440,130); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(360,55); ctx.lineTo(402,124); ctx.lineTo(318,124); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(655,72); ctx.lineTo(690,132); ctx.lineTo(620,132); ctx.closePath(); ctx.fill();
+
+            // Crêtes glacées
+            ctx.strokeStyle='#dff4ff'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(500,35); ctx.lineTo(540,95); ctx.moveTo(500,35); ctx.lineTo(470,100); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(360,55); ctx.lineTo(382,98); ctx.moveTo(655,72); ctx.lineTo(675,108); ctx.stroke();
           };
 
           const drawSpringFlowers = () => {
