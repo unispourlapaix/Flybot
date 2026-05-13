@@ -96,27 +96,30 @@
           };
 
           const drawSpringFlowers = () => {
-            for(let i=0;i<26;i++){
-              const x = (i*39 + (state.t*0.45)%40);
-              const yTop = 450 + Math.sin((i+state.t*0.03))*8;
-              px(x, yTop, 2, 10, '#4caf50');
+            // fleurs attachées au plan isométrique (pas écran)
+            for(let i=0;i<18;i++){
+              const gx = -1 + i*1.2;
+              const gy = 10.7 + Math.sin(i*0.6)*0.25;
+              const p = iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
+              const sway = Math.sin(state.t*0.04 + i)*1.2;
+              px(p.x+sway, p.y+7, 2, 9, '#4caf50');
               const petal = i%3===0 ? '#ff6ec7' : (i%3===1 ? '#ffd166' : '#9b7bff');
-              px(x-3, yTop-4, 8, 4, petal);
+              drawDiamond(p.x+sway, p.y+2, 5, 4, petal);
             }
           };
 
           const drawForestEdge=(side)=>{
-            for(let i=0;i<10;i++){
-              const baseX = side==='left'? -120 : 1080;
-              const depth = i*70 + (state.t*0.25)%70;
-              const x = side==='left'? baseX+depth*0.22 : baseX-depth*0.22;
-              const y = 120 + i*42;
-              // tronc
-              px(x, y+8, 10, 20, '#7d4b2f');
-              // feuillage géométrique (3 couches)
-              drawDiamond(x+5,y-10,20,18,'#55c76a');
-              drawDiamond(x+5,y-2,16,14,'#6fd680');
-              drawDiamond(x+5,y+6,12,10,'#8be39a');
+            for(let i=0;i<11;i++){
+              const gx = side==='left' ? -2.2 : 19.4;
+              const gy = i*1.05 + 1.2;
+              const p = iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
+              const trunkH = 18 + (i%3)*3;
+              // tronc accroché au sol isométrique
+              px(p.x-2, p.y-trunkH+10, 5, trunkH, '#7d4b2f');
+              // feuillage géométrique aligné perspective
+              drawDiamond(p.x, p.y-trunkH-6, 13, 11, '#55c76a');
+              drawDiamond(p.x, p.y-trunkH+1, 10, 8, '#6fd680');
+              drawDiamond(p.x, p.y-trunkH+7, 8, 6, '#8be39a');
             }
           };
 
