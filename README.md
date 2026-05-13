@@ -8,7 +8,7 @@ Retour au mode **3D isométrique** avec un design plus **montagneux** et une amb
 - Animations des arbres et fleurs recalées sur la grille isométrique du sol (cohérence perspective).
 - Montagnes recalées sur la perspective du sol isométrique, avec palette plus verte/printanière (moins grise).
 - Gameplay conservé : vent, inertie, obstacles et bonus (`Fleur`, `Soleil`, `Abeille`).
-- Papillon redessiné avec une forme plus claire et identifiable (ailes symétriques + motifs), tout en respectant la perspective isométrique.
+- Papillon redessiné style monarque (orange/noir, points blancs), plus fidèle visuellement et cohérent avec la perspective isométrique.
 - **Mode Cool** : moins d’obstacles, vitesse plus douce, lecture plus relax.
 
 ## Contrôles
