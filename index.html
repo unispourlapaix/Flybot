@@ -2,22 +2,20 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flybot React</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Flybot 2D Vertical Mobile</title>
     <style>
-      body { margin:0; background:#87d7ff; font-family:system-ui,sans-serif; overflow:hidden; }
+      body { margin:0; background:linear-gradient(#8ddcff,#c8f3ff); font-family:system-ui,sans-serif; overflow:hidden; }
       #root { width:100vw; height:100vh; }
-      .ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
-      canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; }
+      .ui { position:fixed; top:8px; left:8px; right:8px; display:flex; justify-content:space-between; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
+      canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; touch-action:none; }
     </style>
   </head>
   <body>
     <div id="root"></div>
-
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <script type="text/babel">
       const { useEffect, useRef, useState } = React;
 
@@ -31,141 +29,117 @@
           const ctx = c.getContext('2d');
           let raf;
           const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-          c.width = 960 * dpr; c.height = 540 * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+          const W = 420, H = 820;
+          c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
 
           const state = {
-            t: 0,
-            gameOver: false,
-            score: 0,
-            butterfly: { x: 200, y: 270, vy: 0, shield: false, agility: 1 },
-            touchY: 270,
-            wind: 0,
-            obstacles: [],
-            bonuses: []
+            t:0, score:0, gameOver:false,
+            butterfly:{x:210,y:680,vx:0,shield:false,agility:1},
+            targetX:210, wind:0,
+            obstacles:[], bonuses:[]
           };
+          const rand=(a,b)=>Math.random()*(b-a)+a;
+          const types=['Fleur','Soleil','Abeille'];
+          for(let i=0;i<8;i++) state.obstacles.push({x:rand(50,370),y:rand(-1800,-120),r:16,s:2+Math.random()*1.2});
+          for(let i=0;i<4;i++) state.bonuses.push({x:rand(40,380),y:rand(-1600,-80),type:types[(Math.random()*3)|0]});
 
-          const rand = (a,b) => Math.random() * (b-a) + a;
-          const iso = (x,y,z=0) => ({ x:(x-y)*1.1+480, y:(x+y)*0.55-z+70 });
-
-          const spawnObstacle = () => state.obstacles.push({ x:rand(800,1200), y:rand(140,420), speed:rand(0.8,1.6) });
-          const spawnBonus = () => {
-            const types = ['Fleur','Soleil','Abeille'];
-            state.bonuses.push({ x:rand(900,1250), y:rand(120,430), type:types[(Math.random()*3)|0] });
+          const setPointer=(clientX)=>{
+            const r=c.getBoundingClientRect();
+            state.targetX=(clientX-r.left)*(W/r.width);
           };
-          for(let i=0;i<6;i++) spawnObstacle();
-          for(let i=0;i<3;i++) spawnBonus();
-
-          const onPointer = (clientY) => {
-            const r = c.getBoundingClientRect();
-            state.touchY = (clientY-r.top)*(c.height/r.height);
-          };
-          const mm = (e)=>onPointer(e.clientY);
-          const ts = (e)=>onPointer(e.touches[0].clientY);
-          window.addEventListener('mousemove', mm);
-          window.addEventListener('touchstart', ts, { passive:true });
-          window.addEventListener('touchmove', ts, { passive:true });
-
-          const pixelRect = (x,y,w,h,color)=>{ ctx.fillStyle=color; ctx.fillRect(Math.round(x),Math.round(y),w,h); };
-          const outlineRect = (x,y,w,h,color='#1f1f1f')=>{ ctx.strokeStyle=color; ctx.lineWidth=1; ctx.strokeRect(Math.round(x)+0.5,Math.round(y)+0.5,w,h); };
-          const drawCirclePx = (x,y,r,color)=>{ ctx.fillStyle=color; ctx.beginPath(); ctx.arc(Math.round(x),Math.round(y),r,0,Math.PI*2); ctx.fill(); };
-          const drawGround = () => {
-            for(let gx=0;gx<14;gx++) for(let gy=0;gy<10;gy++) {
-              const p=iso(gx*46 + (state.t*0.10)%46, gy*46, 0);
-              ctx.fillStyle=((gx+gy)%2)?'#72c95f':'#81d66a';
-              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+25,p.y+12); ctx.lineTo(p.x,p.y+24); ctx.lineTo(p.x-25,p.y+12); ctx.closePath(); ctx.fill();
-            }
-          };
-          const drawButterfly = (b) => {
-            const p=iso(b.x*0.6,b.y*0.6,60);
-            // Silhouette orientée dans le sens du défilement (vers la droite)
-            pixelRect(p.x-10,p.y-11,14,18,'#2f2f2f'); outlineRect(p.x-10,p.y-11,14,18);
-            pixelRect(p.x+4,p.y-9,10,14,'#3a3a3a'); outlineRect(p.x+4,p.y-9,10,14);
-            // Ailes manga plus longues vers l'arrière
-            pixelRect(p.x-30,p.y-14,20,14,'#ff5eb8'); outlineRect(p.x-30,p.y-14,20,14);
-            pixelRect(p.x-26,p.y+2,18,13,'#ffd166'); outlineRect(p.x-26,p.y+2,18,13);
-            pixelRect(p.x-4,p.y-15,14,13,'#ff88d0'); outlineRect(p.x-4,p.y-15,14,13);
-            pixelRect(p.x-2,p.y+3,12,11,'#ffe08a'); outlineRect(p.x-2,p.y+3,12,11);
-            // Œil manga et antennes
-            drawCirclePx(p.x+10,p.y-3,3,'#ffffff'); drawCirclePx(p.x+11,p.y-3,1,'#1b1b1b');
-            pixelRect(p.x+10,p.y-12,1,4,'#1f1f1f'); pixelRect(p.x+12,p.y-12,1,4,'#1f1f1f');
-            // Effet de vitesse doux
-            ctx.strokeStyle='#ffffff66'; ctx.lineWidth=1;
-            ctx.beginPath(); ctx.moveTo(p.x-34,p.y-4); ctx.lineTo(p.x-48,p.y-4); ctx.stroke();
-            if (b.shield) { ctx.strokeStyle='#00d1ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,28,0,Math.PI*2); ctx.stroke(); }
-          };
-          const drawObstacle=(o)=>{ 
-            const p=iso(o.x*0.6,o.y*0.6,55);
-            pixelRect(p.x-12,p.y-40,24,42,'#7d4b2f'); outlineRect(p.x-12,p.y-40,24,42);
-            pixelRect(p.x-18,p.y-48,36,10,'#58c56a'); outlineRect(p.x-18,p.y-48,36,10);
-            pixelRect(p.x-8,p.y-28,6,6,'#9b5f3e'); pixelRect(p.x+2,p.y-16,6,6,'#9b5f3e');
-          };
-          const drawBonus=(b)=>{
-            const p=iso(b.x*0.6,b.y*0.6,50);
-            if(b.type==='Fleur'){ pixelRect(p.x-4,p.y,8,10,'#4caf50'); pixelRect(p.x-10,p.y-8,20,8,'#ff4da6'); }
-            if(b.type==='Soleil'){ pixelRect(p.x-8,p.y-8,16,16,'#ffd54f'); }
-            if(b.type==='Abeille'){ pixelRect(p.x-10,p.y-5,20,10,'#ffd166'); pixelRect(p.x-4,p.y-5,8,10,'#222'); }
-          };
+          const mm=e=>setPointer(e.clientX);
+          const tm=e=>setPointer(e.touches[0].clientX);
+          window.addEventListener('mousemove',mm);
+          window.addEventListener('touchstart',tm,{passive:true});
+          window.addEventListener('touchmove',tm,{passive:true});
 
           let slowTimer=0, shieldTimer=0, agileTimer=0;
           const applyBonus=(type)=>{
             setBonus(type);
-            if(type==='Fleur'){ agileTimer=300; state.butterfly.agility=1.7; }
-            if(type==='Soleil'){ slowTimer=300; }
-            if(type==='Abeille'){ shieldTimer=300; state.butterfly.shield=true; }
+            if(type==='Fleur'){agileTimer=260; state.butterfly.agility=1.6;}
+            if(type==='Soleil'){slowTimer=260;}
+            if(type==='Abeille'){shieldTimer=260; state.butterfly.shield=true;}
           };
 
-          const loop = () => {
+          const drawButterfly=(b)=>{
+            ctx.fillStyle='#2f2f2f'; ctx.fillRect(b.x-3,b.y-12,6,24);
+            ctx.fillStyle='#ff5eb8'; ctx.fillRect(b.x-22,b.y-10,16,14); ctx.fillRect(b.x+6,b.y-10,16,14);
+            ctx.fillStyle='#ffd166'; ctx.fillRect(b.x-18,b.y+4,12,10); ctx.fillRect(b.x+6,b.y+4,12,10);
+            ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(b.x+1,b.y-6,3,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(b.x+2,b.y-6,1.2,0,Math.PI*2); ctx.fill();
+            if(b.shield){ctx.strokeStyle='#00d1ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(b.x,b.y,28,0,Math.PI*2);ctx.stroke();}
+          };
+
+          const draw = () => {
+            ctx.clearRect(0,0,W,H);
+            // fond vertical
+            for(let i=0;i<22;i++){
+              const y=((state.t*1.1+i*40)%900)-40;
+              ctx.fillStyle=i%2?'#baf0ff':'#d7f8ff';
+              ctx.fillRect(0,H-y, W, 22);
+            }
+            // obstacles
+            for(const o of state.obstacles){
+              ctx.fillStyle='#7d4b2f'; ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill();
+              ctx.fillStyle='#58c56a'; ctx.fillRect(o.x-12,o.y-o.r-8,24,8);
+            }
+            // bonus
+            for(const b of state.bonuses){
+              if(b.type==='Fleur'){ctx.fillStyle='#ff4da6';ctx.fillRect(b.x-8,b.y-8,16,8);ctx.fillStyle='#4caf50';ctx.fillRect(b.x-2,b.y,4,10);}
+              if(b.type==='Soleil'){ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.arc(b.x,b.y,8,0,Math.PI*2);ctx.fill();}
+              if(b.type==='Abeille'){ctx.fillStyle='#ffd166';ctx.fillRect(b.x-9,b.y-5,18,10);ctx.fillStyle='#222';ctx.fillRect(b.x-2,b.y-5,4,10);}
+            }
+            drawButterfly(state.butterfly);
+            if(state.gameOver){ctx.fillStyle='#000a';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.font='bold 36px sans-serif';ctx.fillText('Game Over',130,390);}
+          };
+
+          const loop=()=>{
             if(!state.gameOver){
               state.t++;
-              state.wind = Math.sin(state.t*0.008)*0.04;
               const b=state.butterfly;
-              b.vy += ((state.touchY-b.y)*0.007*b.agility)+state.wind;
-              b.vy *= 0.95;
-              b.y = Math.max(70,Math.min(470,b.y+b.vy));
+              state.wind=Math.sin(state.t*0.01)*0.25;
+              b.vx += ((state.targetX-b.x)*0.008*b.agility)+state.wind*0.03;
+              b.vx *= 0.92;
+              b.x += b.vx;
+              b.x=Math.max(28,Math.min(W-28,b.x));
 
               if(slowTimer>0) slowTimer--; else if(bonus==='Soleil') setBonus('Aucun');
               if(agileTimer>0) agileTimer--; else b.agility=1;
               if(shieldTimer>0) shieldTimer--; else b.shield=false;
 
-              const speedMul = slowTimer>0 ? 0.55 : 1;
+              const speedMul=slowTimer>0?0.6:1;
               for(const o of state.obstacles){
-                o.x -= o.speed*speedMul;
-                if(o.x<-80){ o.x=rand(980,1280); o.y=rand(120,430); }
-                if(Math.abs(o.x-b.x)<36 && Math.abs(o.y-b.y)<44){ if(b.shield){ b.shield=false; shieldTimer=0; o.x=-100; } else state.gameOver=true; }
+                o.y += o.s*speedMul;
+                if(o.y>H+50){o.y=rand(-400,-80);o.x=rand(40,W-40);}
+                if(Math.abs(o.x-b.x)<o.r+14 && Math.abs(o.y-b.y)<o.r+14){
+                  if(b.shield){b.shield=false;shieldTimer=0;o.y=H+60;} else state.gameOver=true;
+                }
               }
               for(const bo of state.bonuses){
-                bo.x -= 0.9;
-                if(bo.x<-60){ bo.x=rand(980,1300); bo.y=rand(110,440); bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0]; }
-                if(Math.abs(bo.x-b.x)<28 && Math.abs(bo.y-b.y)<34){ applyBonus(bo.type); bo.x=-80; }
+                bo.y += 1.6;
+                if(bo.y>H+40){bo.y=rand(-420,-90);bo.x=rand(40,W-40);bo.type=types[(Math.random()*3)|0];}
+                if(Math.abs(bo.x-b.x)<22 && Math.abs(bo.y-b.y)<20){applyBonus(bo.type);bo.y=H+60;}
               }
 
-              state.score++; setScore(Math.floor(state.score/10));
+              state.score++; setScore(Math.floor(state.score/12));
             }
-
-            ctx.clearRect(0,0,c.width,c.height);
-            drawGround();
-            [...state.obstacles].sort((a,b)=>a.y-b.y).forEach(drawObstacle);
-            state.bonuses.forEach(drawBonus);
-            drawButterfly(state.butterfly);
-            if(state.gameOver){ ctx.fillStyle='#000a'; ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle='#fff'; ctx.font='bold 48px sans-serif'; ctx.fillText('Game Over',370,250); }
+            draw();
             raf=requestAnimationFrame(loop);
           };
-
           loop();
-          return () => {
+
+          return ()=>{
             cancelAnimationFrame(raf);
-            window.removeEventListener('mousemove', mm);
-            window.removeEventListener('touchstart', ts);
-            window.removeEventListener('touchmove', ts);
+            window.removeEventListener('mousemove',mm);
+            window.removeEventListener('touchstart',tm);
+            window.removeEventListener('touchmove',tm);
           };
         }, []);
 
-        return (
-          <>
-            <div className="ui">Score: {score} | Bonus: {bonus}</div>
-            <canvas ref={canvasRef} id="game" width="960" height="540" />
-          </>
-        );
+        return <>
+          <div className="ui"><span>Score: {score}</span><span>Bonus: {bonus}</span></div>
+          <canvas ref={canvasRef} />
+        </>;
       }
 
       ReactDOM.createRoot(document.getElementById('root')).render(<FlybotGame />);
