@@ -1,10 +1,11 @@
 # Flybot React — 3D isométrique enrichi
 
-Retour au mode **3D isométrique** avec une géométrie plus complexe et une forêt décorative sur les bords.
+Retour au mode **3D isométrique** avec un design plus **montagneux** et une ambiance **printemps fleuri**.
 
 ## Nouveautés
 - Sol isométrique avec relief (faces latérales) pour plus de volume.
 - Forêt latérale animée (gauche/droite) avec arbres stylisés en couches géométriques.
+- Arrière-plan montagneux + touches florales printanières pour une ambiance plus douce.
 - Gameplay conservé : vent, inertie, obstacles et bonus (`Fleur`, `Soleil`, `Abeille`).
 - **Mode Cool** : moins d’obstacles, vitesse plus douce, lecture plus relax.
 

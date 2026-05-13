@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Flybot 3D Isométrique</title>
     <style>
-      body { margin:0; background:#87d7ff; font-family:system-ui,sans-serif; overflow:hidden; }
+      body { margin:0; background:linear-gradient(#9fe4ff,#d9f7ff); font-family:system-ui,sans-serif; overflow:hidden; }
       #root { width:100vw; height:100vh; }
       .ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
       canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; }
@@ -61,6 +61,29 @@
             ctx.closePath();ctx.fill();
           };
 
+
+          const drawMountains = () => {
+            const ridge = (x, y, w, h, c) => { ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+w*0.5,y-h); ctx.lineTo(x+w,y); ctx.closePath(); ctx.fill(); };
+            ridge(40,190,220,120,'#7ea48b');
+            ridge(180,210,280,150,'#6f977e');
+            ridge(380,190,260,135,'#86ae94');
+            ridge(620,215,260,140,'#769f84');
+            ridge(760,200,210,120,'#83ab90');
+            ctx.fillStyle='#f2fff7';
+            ctx.beginPath(); ctx.moveTo(300,70); ctx.lineTo(340,120); ctx.lineTo(260,120); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(500,62); ctx.lineTo(548,128); ctx.lineTo(452,128); ctx.closePath(); ctx.fill();
+          };
+
+          const drawSpringFlowers = () => {
+            for(let i=0;i<26;i++){
+              const x = (i*39 + (state.t*0.45)%40);
+              const yTop = 450 + Math.sin((i+state.t*0.03))*8;
+              px(x, yTop, 2, 10, '#4caf50');
+              const petal = i%3===0 ? '#ff6ec7' : (i%3===1 ? '#ffd166' : '#9b7bff');
+              px(x-3, yTop-4, 8, 4, petal);
+            }
+          };
+
           const drawForestEdge=(side)=>{
             for(let i=0;i<10;i++){
               const baseX = side==='left'? -120 : 1080;
@@ -70,9 +93,9 @@
               // tronc
               px(x, y+8, 10, 20, '#7d4b2f');
               // feuillage géométrique (3 couches)
-              drawDiamond(x+5,y-10,20,18,'#2f9f44');
-              drawDiamond(x+5,y-2,16,14,'#3db455');
-              drawDiamond(x+5,y+6,12,10,'#58c56a');
+              drawDiamond(x+5,y-10,20,18,'#55c76a');
+              drawDiamond(x+5,y-2,16,14,'#6fd680');
+              drawDiamond(x+5,y+6,12,10,'#8be39a');
             }
           };
 
@@ -107,8 +130,8 @@
           const drawObstacle=(o)=>{
             const p=iso(o.x*0.6,o.y*0.6,58);
             px(p.x-12,p.y-42,24,44,'#7d4b2f'); edge(p.x-12,p.y-42,24,44);
-            drawDiamond(p.x,p.y-54,22,16,'#2f9f44');
-            drawDiamond(p.x,p.y-46,18,14,'#3db455');
+            drawDiamond(p.x,p.y-54,22,16,'#55c76a');
+            drawDiamond(p.x,p.y-46,18,14,'#6fd680');
           };
 
           const drawBonus=(b)=>{
@@ -154,12 +177,14 @@
             }
 
             ctx.clearRect(0,0,960,540);
+            drawMountains();
             drawGround();
             drawForestEdge('left');
             drawForestEdge('right');
             [...state.obstacles].sort((a,b)=>a.y-b.y).forEach(drawObstacle);
             state.bonuses.forEach(drawBonus);
             drawButterfly(state.butterfly);
+            drawSpringFlowers();
             if(state.gameOver){ctx.fillStyle='#000a';ctx.fillRect(0,0,960,540);ctx.fillStyle='#fff';ctx.font='bold 48px sans-serif';ctx.fillText('Game Over',370,250);}
             raf=requestAnimationFrame(loop);
           };
