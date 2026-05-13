@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Flybot 2D Vertical Mobile</title>
+    <title>Flybot 3D Isométrique</title>
     <style>
-      body { margin:0; background:linear-gradient(#8ddcff,#c8f3ff); font-family:system-ui,sans-serif; overflow:hidden; }
+      body { margin:0; background:#87d7ff; font-family:system-ui,sans-serif; overflow:hidden; }
       #root { width:100vw; height:100vh; }
-      .ui { position:fixed; top:8px; left:8px; right:8px; display:flex; justify-content:space-between; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
-      canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; touch-action:none; }
+      .ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
+      canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; }
     </style>
   </head>
   <body>
@@ -29,79 +29,111 @@
           const ctx = c.getContext('2d');
           let raf;
           const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-          const W = 420, H = 820;
-          c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+          c.width = 960 * dpr; c.height = 540 * dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
 
           const state = {
             t:0, score:0, gameOver:false,
-            butterfly:{x:210,y:680,vx:0,shield:false,agility:1},
-            targetX:210, wind:0,
-            obstacles:[], bonuses:[]
+            butterfly:{x:200,y:270,vy:0,shield:false,agility:1},
+            wind:0, obstacles:[], bonuses:[], touchY:270
           };
           const rand=(a,b)=>Math.random()*(b-a)+a;
-          const types=['Fleur','Soleil','Abeille'];
-          for(let i=0;i<8;i++) state.obstacles.push({x:rand(50,370),y:rand(-1800,-120),r:16,s:2+Math.random()*1.2});
-          for(let i=0;i<4;i++) state.bonuses.push({x:rand(40,380),y:rand(-1600,-80),type:types[(Math.random()*3)|0]});
+          const iso=(x,y,z=0)=>({x:(x-y)*1.15+480,y:(x+y)*0.58-z+52});
 
-          const setPointer=(clientX)=>{
+          for(let i=0;i<7;i++) state.obstacles.push({x:rand(840,1320),y:rand(120,430),speed:rand(1.2,2.4)});
+          for(let i=0;i<4;i++) state.bonuses.push({x:rand(900,1340),y:rand(110,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
+
+          const setY = (clientY) => {
             const r=c.getBoundingClientRect();
-            state.targetX=(clientX-r.left)*(W/r.width);
+            state.touchY=(clientY-r.top)*(c.height/r.height);
           };
-          const mm=e=>setPointer(e.clientX);
-          const tm=e=>setPointer(e.touches[0].clientX);
+          const mm=e=>setY(e.clientY);
+          const ts=e=>setY(e.touches[0].clientY);
           window.addEventListener('mousemove',mm);
-          window.addEventListener('touchstart',tm,{passive:true});
-          window.addEventListener('touchmove',tm,{passive:true});
+          window.addEventListener('touchstart',ts,{passive:true});
+          window.addEventListener('touchmove',ts,{passive:true});
+
+          const px=(x,y,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),w,h)};
+          const edge=(x,y,w,h,col='#1f1f1f')=>{ctx.strokeStyle=col;ctx.lineWidth=1;ctx.strokeRect(Math.round(x)+0.5,Math.round(y)+0.5,w,h)};
+
+          const drawDiamond=(x,y,w,h,col)=>{
+            ctx.fillStyle=col; ctx.beginPath();
+            ctx.moveTo(x,y);ctx.lineTo(x+w,y+h*0.5);ctx.lineTo(x,y+h);ctx.lineTo(x-w,y+h*0.5);
+            ctx.closePath();ctx.fill();
+          };
+
+          const drawForestEdge=(side)=>{
+            for(let i=0;i<10;i++){
+              const baseX = side==='left'? -120 : 1080;
+              const depth = i*70 + (state.t*0.25)%70;
+              const x = side==='left'? baseX+depth*0.22 : baseX-depth*0.22;
+              const y = 120 + i*42;
+              // tronc
+              px(x, y+8, 10, 20, '#7d4b2f');
+              // feuillage géométrique (3 couches)
+              drawDiamond(x+5,y-10,20,18,'#2f9f44');
+              drawDiamond(x+5,y-2,16,14,'#3db455');
+              drawDiamond(x+5,y+6,12,10,'#58c56a');
+            }
+          };
+
+          const drawGround = () => {
+            for(let gx=0;gx<16;gx++) for(let gy=0;gy<11;gy++){
+              const p=iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
+              drawDiamond(p.x,p.y,26,24,((gx+gy)%2)?'#77cf63':'#8bdb73');
+              // relief: face avant du tile (complexité géométrique)
+              ctx.fillStyle=((gx+gy)%2)?'#5eb24f':'#6ac05a';
+              ctx.beginPath();
+              ctx.moveTo(p.x-26,p.y+12);ctx.lineTo(p.x,p.y+24);ctx.lineTo(p.x,p.y+30);ctx.lineTo(p.x-26,p.y+18);
+              ctx.closePath();ctx.fill();
+              ctx.beginPath();
+              ctx.moveTo(p.x+26,p.y+12);ctx.lineTo(p.x,p.y+24);ctx.lineTo(p.x,p.y+30);ctx.lineTo(p.x+26,p.y+18);
+              ctx.closePath();ctx.fill();
+            }
+          };
+
+          const drawButterfly=(b)=>{
+            const p=iso(b.x*0.6,b.y*0.6,62);
+            px(p.x-8,p.y-11,14,18,'#2f2f2f'); edge(p.x-8,p.y-11,14,18);
+            px(p.x+6,p.y-9,10,14,'#3a3a3a'); edge(p.x+6,p.y-9,10,14);
+            px(p.x-30,p.y-14,20,14,'#ff5eb8'); edge(p.x-30,p.y-14,20,14);
+            px(p.x-26,p.y+2,18,13,'#ffd166'); edge(p.x-26,p.y+2,18,13);
+            px(p.x-4,p.y-15,14,13,'#ff88d0'); edge(p.x-4,p.y-15,14,13);
+            px(p.x-2,p.y+3,12,11,'#ffe08a'); edge(p.x-2,p.y+3,12,11);
+            ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(p.x+12,p.y-2,3,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(p.x+13,p.y-2,1.2,0,Math.PI*2); ctx.fill();
+            if(b.shield){ctx.strokeStyle='#00d1ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,28,0,Math.PI*2);ctx.stroke();}
+          };
+
+          const drawObstacle=(o)=>{
+            const p=iso(o.x*0.6,o.y*0.6,58);
+            px(p.x-12,p.y-42,24,44,'#7d4b2f'); edge(p.x-12,p.y-42,24,44);
+            drawDiamond(p.x,p.y-54,22,16,'#2f9f44');
+            drawDiamond(p.x,p.y-46,18,14,'#3db455');
+          };
+
+          const drawBonus=(b)=>{
+            const p=iso(b.x*0.6,b.y*0.6,52);
+            if(b.type==='Fleur'){px(p.x-4,p.y,8,10,'#4caf50');px(p.x-10,p.y-8,20,8,'#ff4da6');}
+            if(b.type==='Soleil'){px(p.x-8,p.y-8,16,16,'#ffd54f');}
+            if(b.type==='Abeille'){px(p.x-10,p.y-5,20,10,'#ffd166');px(p.x-4,p.y-5,8,10,'#222');}
+          };
 
           let slowTimer=0, shieldTimer=0, agileTimer=0;
           const applyBonus=(type)=>{
             setBonus(type);
-            if(type==='Fleur'){agileTimer=260; state.butterfly.agility=1.6;}
-            if(type==='Soleil'){slowTimer=260;}
-            if(type==='Abeille'){shieldTimer=260; state.butterfly.shield=true;}
-          };
-
-          const drawButterfly=(b)=>{
-            ctx.fillStyle='#2f2f2f'; ctx.fillRect(b.x-3,b.y-12,6,24);
-            ctx.fillStyle='#ff5eb8'; ctx.fillRect(b.x-22,b.y-10,16,14); ctx.fillRect(b.x+6,b.y-10,16,14);
-            ctx.fillStyle='#ffd166'; ctx.fillRect(b.x-18,b.y+4,12,10); ctx.fillRect(b.x+6,b.y+4,12,10);
-            ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(b.x+1,b.y-6,3,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(b.x+2,b.y-6,1.2,0,Math.PI*2); ctx.fill();
-            if(b.shield){ctx.strokeStyle='#00d1ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(b.x,b.y,28,0,Math.PI*2);ctx.stroke();}
-          };
-
-          const draw = () => {
-            ctx.clearRect(0,0,W,H);
-            // fond vertical
-            for(let i=0;i<22;i++){
-              const y=((state.t*1.1+i*40)%900)-40;
-              ctx.fillStyle=i%2?'#baf0ff':'#d7f8ff';
-              ctx.fillRect(0,H-y, W, 22);
-            }
-            // obstacles
-            for(const o of state.obstacles){
-              ctx.fillStyle='#7d4b2f'; ctx.beginPath(); ctx.arc(o.x,o.y,o.r,0,Math.PI*2); ctx.fill();
-              ctx.fillStyle='#58c56a'; ctx.fillRect(o.x-12,o.y-o.r-8,24,8);
-            }
-            // bonus
-            for(const b of state.bonuses){
-              if(b.type==='Fleur'){ctx.fillStyle='#ff4da6';ctx.fillRect(b.x-8,b.y-8,16,8);ctx.fillStyle='#4caf50';ctx.fillRect(b.x-2,b.y,4,10);}
-              if(b.type==='Soleil'){ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.arc(b.x,b.y,8,0,Math.PI*2);ctx.fill();}
-              if(b.type==='Abeille'){ctx.fillStyle='#ffd166';ctx.fillRect(b.x-9,b.y-5,18,10);ctx.fillStyle='#222';ctx.fillRect(b.x-2,b.y-5,4,10);}
-            }
-            drawButterfly(state.butterfly);
-            if(state.gameOver){ctx.fillStyle='#000a';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.font='bold 36px sans-serif';ctx.fillText('Game Over',130,390);}
+            if(type==='Fleur'){agileTimer=280; state.butterfly.agility=1.7;}
+            if(type==='Soleil'){slowTimer=280;}
+            if(type==='Abeille'){shieldTimer=280; state.butterfly.shield=true;}
           };
 
           const loop=()=>{
             if(!state.gameOver){
               state.t++;
+              state.wind=Math.sin(state.t*0.01)*0.05;
               const b=state.butterfly;
-              state.wind=Math.sin(state.t*0.01)*0.25;
-              b.vx += ((state.targetX-b.x)*0.008*b.agility)+state.wind*0.03;
-              b.vx *= 0.92;
-              b.x += b.vx;
-              b.x=Math.max(28,Math.min(W-28,b.x));
+              b.vy += ((state.touchY-b.y)*0.008*b.agility)+state.wind;
+              b.vy *= 0.94;
+              b.y = Math.max(70,Math.min(470,b.y+b.vy));
 
               if(slowTimer>0) slowTimer--; else if(bonus==='Soleil') setBonus('Aucun');
               if(agileTimer>0) agileTimer--; else b.agility=1;
@@ -109,36 +141,36 @@
 
               const speedMul=slowTimer>0?0.6:1;
               for(const o of state.obstacles){
-                o.y += o.s*speedMul;
-                if(o.y>H+50){o.y=rand(-400,-80);o.x=rand(40,W-40);}
-                if(Math.abs(o.x-b.x)<o.r+14 && Math.abs(o.y-b.y)<o.r+14){
-                  if(b.shield){b.shield=false;shieldTimer=0;o.y=H+60;} else state.gameOver=true;
-                }
+                o.x -= o.speed*speedMul;
+                if(o.x<-90){o.x=rand(980,1360);o.y=rand(120,430);}
+                if(Math.abs(o.x-b.x)<38 && Math.abs(o.y-b.y)<44){if(b.shield){b.shield=false;shieldTimer=0;o.x=-120;} else state.gameOver=true;}
               }
               for(const bo of state.bonuses){
-                bo.y += 1.6;
-                if(bo.y>H+40){bo.y=rand(-420,-90);bo.x=rand(40,W-40);bo.type=types[(Math.random()*3)|0];}
-                if(Math.abs(bo.x-b.x)<22 && Math.abs(bo.y-b.y)<20){applyBonus(bo.type);bo.y=H+60;}
+                bo.x -= 1.2;
+                if(bo.x<-80){bo.x=rand(980,1360);bo.y=rand(110,440);bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0];}
+                if(Math.abs(bo.x-b.x)<28 && Math.abs(bo.y-b.y)<34){applyBonus(bo.type);bo.x=-80;}
               }
-
               state.score++; setScore(Math.floor(state.score/12));
             }
-            draw();
+
+            ctx.clearRect(0,0,960,540);
+            drawGround();
+            drawForestEdge('left');
+            drawForestEdge('right');
+            [...state.obstacles].sort((a,b)=>a.y-b.y).forEach(drawObstacle);
+            state.bonuses.forEach(drawBonus);
+            drawButterfly(state.butterfly);
+            if(state.gameOver){ctx.fillStyle='#000a';ctx.fillRect(0,0,960,540);ctx.fillStyle='#fff';ctx.font='bold 48px sans-serif';ctx.fillText('Game Over',370,250);}
             raf=requestAnimationFrame(loop);
           };
           loop();
 
-          return ()=>{
-            cancelAnimationFrame(raf);
-            window.removeEventListener('mousemove',mm);
-            window.removeEventListener('touchstart',tm);
-            window.removeEventListener('touchmove',tm);
-          };
+          return ()=>{cancelAnimationFrame(raf);window.removeEventListener('mousemove',mm);window.removeEventListener('touchstart',ts);window.removeEventListener('touchmove',ts);};
         }, []);
 
         return <>
-          <div className="ui"><span>Score: {score}</span><span>Bonus: {bonus}</span></div>
-          <canvas ref={canvasRef} />
+          <div className="ui">Score: {score} | Bonus: {bonus}</div>
+          <canvas ref={canvasRef} width="960" height="540" />
         </>;
       }
 

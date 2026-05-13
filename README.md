@@ -1,18 +1,14 @@
-# Flybot React — Mode 2D vertical mobile
+# Flybot React — 3D isométrique enrichi
 
-Version mobile en **2D vertical** : le décor défile du haut vers le bas, et le papillon se déplace horizontalement (gauche/droite) pour éviter les obstacles.
+Retour au mode **3D isométrique** avec une géométrie plus complexe et une forêt décorative sur les bords.
+
+## Nouveautés
+- Sol isométrique avec relief (faces latérales) pour plus de volume.
+- Forêt latérale animée (gauche/droite) avec arbres stylisés en couches géométriques.
+- Gameplay conservé : vent, inertie, obstacles et bonus (`Fleur`, `Soleil`, `Abeille`).
 
 ## Contrôles
-- **Mobile tactile** : glisser le doigt horizontalement.
-- **Desktop** : déplacer la souris horizontalement.
+- Souris/tactile vertical pour guider le papillon.
 
-## Bonus
-- **Fleur** : agilité augmentée.
-- **Soleil** : ralentit les obstacles.
-- **Abeille** : bouclier temporaire.
-
-## Déploiement GitHub Pages
-Le workflow `.github/workflows/deploy-pages.yml` publie automatiquement sur push `main`.
-
-## Lancer en local
-Ouvrir `index.html` dans un navigateur (connexion internet requise pour React/Babel CDN).
+## Déploiement
+GitHub Pages via `.github/workflows/deploy-pages.yml`.
