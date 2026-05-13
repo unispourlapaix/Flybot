@@ -3,7 +3,7 @@
 Retour au mode **3D isométrique** avec un design plus **montagneux** et une ambiance **printemps fleuri**.
 
 ## Nouveautés
-- Sol isométrique avec relief (faces latérales) pour plus de volume.
+- Sol isométrique retravaillé : prairie organique, sentier naturel et petite zone d’eau (au lieu d’un damier répétitif).
 - Forêt latérale animée (gauche/droite) avec arbres stylisés en couches géométriques.
 - Arrière-plan montagneux + touches florales printanières pour une ambiance plus douce.
 - Gameplay conservé : vent, inertie, obstacles et bonus (`Fleur`, `Soleil`, `Abeille`).

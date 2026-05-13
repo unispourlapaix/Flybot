@@ -101,16 +101,41 @@
 
           const drawGround = () => {
             for(let gx=0;gx<16;gx++) for(let gy=0;gy<11;gy++){
-              const p=iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
-              drawDiamond(p.x,p.y,26,24,((gx+gy)%2)?'#77cf63':'#8bdb73');
-              // relief: face avant du tile (complexité géométrique)
-              ctx.fillStyle=((gx+gy)%2)?'#5eb24f':'#6ac05a';
+              const wx = gx*44 + (state.t*0.16)%44;
+              const wy = gy*44;
+              const p=iso(wx, wy, 0);
+
+              // terrain organique (prairie, sentier, eau) au lieu damier
+              const noise = Math.sin((gx*0.8)+(gy*0.45)) + Math.cos((gy*0.9)-(gx*0.35));
+              const pathBand = Math.abs((gy - 5) + Math.sin(gx*0.55)*1.1);
+              const pond = Math.hypot(gx-11.5, gy-2.8);
+
+              let top = '#86d974';
+              let left = '#6ac05a';
+              let right = '#73c964';
+
+              if (pathBand < 0.9) { top='#d7c48c'; left='#bea873'; right='#c9b37e'; }
+              else if (pond < 1.6) { top='#7cc9e8'; left='#5ba9c9'; right='#6ab8d8'; }
+              else if (noise > 1.0) { top='#79cf63'; left='#61b54f'; right='#6cc05a'; }
+              else if (noise < -0.8) { top='#92e07e'; left='#78c866'; right='#83d271'; }
+
+              drawDiamond(p.x,p.y,26,24,top);
+
+              // relief face gauche/droite
+              ctx.fillStyle=left;
               ctx.beginPath();
               ctx.moveTo(p.x-26,p.y+12);ctx.lineTo(p.x,p.y+24);ctx.lineTo(p.x,p.y+30);ctx.lineTo(p.x-26,p.y+18);
               ctx.closePath();ctx.fill();
+
+              ctx.fillStyle=right;
               ctx.beginPath();
               ctx.moveTo(p.x+26,p.y+12);ctx.lineTo(p.x,p.y+24);ctx.lineTo(p.x,p.y+30);ctx.lineTo(p.x+26,p.y+18);
               ctx.closePath();ctx.fill();
+
+              // petites fleurs ponctuelles sur prairie
+              if (top === '#86d974' && (gx+gy)%5===0) {
+                px(p.x-2,p.y+9,4,3,'#ff7bcf');
+              }
             }
           };
 
