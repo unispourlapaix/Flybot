@@ -6,6 +6,7 @@ Expérience **3D isométrique zen** avec un jardin alpin, ciel pastel, lac calme
 - Version navigateur **sans React, sans JSX et sans Babel** : JavaScript direct pour éviter les erreurs `expected expression, got '<'` au chargement.
 - Script volontairement compatible ES5-ish (fonctions classiques, pas de JSX/React) pour réduire les erreurs de syntaxe navigateur.
 - Favicon intégré en data URI pour éviter le 404 `/favicon.ico` sur GitHub Pages.
+- Déploiement Pages validé par `npm test` avant publication, avec version visible dans l’interface et cache HTML désactivé pour éviter de servir un ancien build.
 - Plateau isométrique uni et relaxant (sans quadrillage), avec relief doux, sentier organique et petit lac pastel.
 - **Mode Zen** : moins d’obstacles, vitesse plus douce, lecture plus relax.
 - Ambiance visuelle plus relaxante : ciel pastel, soleil doux, nuages lents et fleurs alpines.

@@ -3,6 +3,12 @@ import vm from 'node:vm';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => match[1]);
+const openingScripts = [...html.matchAll(/<script(?:\s[^>]*)?>/gi)].length;
+const closingScripts = [...html.matchAll(/<\/script>/gi)].length;
+
+if (openingScripts !== closingScripts) {
+  throw new Error(`Balises script déséquilibrées : ${openingScripts} ouverture(s), ${closingScripts} fermeture(s).`);
+}
 
 if (inlineScripts.length === 0) {
   throw new Error('Aucun script inline trouvé dans index.html.');
@@ -24,4 +30,4 @@ for (const { name, pattern } of forbiddenRuntimePatterns) {
   }
 }
 
-console.log(`OK: ${inlineScripts.length} script inline valide, sans React/JSX/Babel.`);
+console.log(`OK: ${inlineScripts.length} script inline valide, balises équilibrées, sans React/JSX/Babel.`);

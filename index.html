@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Flybot 3D Isométrique</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%A6%8B%3C/text%3E%3C/svg%3E" />
     <style>
@@ -12,9 +15,11 @@
     </style>
   </head>
   <body>
-    <div id="ui">Mode Zen • Score: <span id="score">0</span> | Bonus: <span id="bonus">Aucun</span></div>
+    <div id="ui">Mode Zen • Score: <span id="score">0</span> | Bonus: <span id="bonus">Aucun</span> <small id="version">v2026.05.30.1</small></div>
     <canvas id="game" width="960" height="540"></canvas>
     <script>
+      var BUILD_VERSION = '2026.05.30.1';
+      console.info('Flybot build ' + BUILD_VERSION);
       var canvas = document.getElementById('game');
       var ctx = canvas.getContext('2d');
       var scoreEl = document.getElementById('score');
