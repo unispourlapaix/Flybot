@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Flybot 3D Isométrique</title>
     <style>
-      body { margin:0; background:linear-gradient(#9fe4ff,#d9f7ff); font-family:system-ui,sans-serif; overflow:hidden; }
+      body { margin:0; background:linear-gradient(#f8d7ff,#bfefff 42%,#dff8d4); font-family:system-ui,sans-serif; overflow:hidden; }
       #root { width:100vw; height:100vh; }
       .ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
       canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; }
@@ -39,8 +39,8 @@
           const rand=(a,b)=>Math.random()*(b-a)+a;
           const iso=(x,y,z=0)=>({x:(x-y)*1.15+480,y:(x+y)*0.58-z+52});
 
-          for(let i=0;i<4;i++) state.obstacles.push({x:rand(900,1380),y:rand(130,420),speed:rand(0.9,1.7)});
-          for(let i=0;i<5;i++) state.bonuses.push({x:rand(880,1360),y:rand(100,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
+          for(let i=0;i<3;i++) state.obstacles.push({x:rand(980,1480),y:rand(150,410),speed:rand(0.65,1.25)});
+          for(let i=0;i<6;i++) state.bonuses.push({x:rand(900,1420),y:rand(100,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
 
           const setY = (clientY) => {
             const r=c.getBoundingClientRect();
@@ -59,6 +59,36 @@
             ctx.fillStyle=col; ctx.beginPath();
             ctx.moveTo(x,y);ctx.lineTo(x+w,y+h*0.5);ctx.lineTo(x,y+h);ctx.lineTo(x-w,y+h*0.5);
             ctx.closePath();ctx.fill();
+          };
+
+
+          const drawSkyGarden = () => {
+            const sky = ctx.createLinearGradient(0,0,0,540);
+            sky.addColorStop(0,'#ffd6f4');
+            sky.addColorStop(0.42,'#bdeeff');
+            sky.addColorStop(1,'#e9ffd9');
+            ctx.fillStyle=sky;
+            ctx.fillRect(0,0,960,540);
+
+            const sunPulse = 1 + Math.sin(state.t*0.015)*0.04;
+            const sunGlow = ctx.createRadialGradient(760,78,18,760,78,96*sunPulse);
+            sunGlow.addColorStop(0,'rgba(255,245,178,0.95)');
+            sunGlow.addColorStop(0.55,'rgba(255,213,135,0.25)');
+            sunGlow.addColorStop(1,'rgba(255,213,135,0)');
+            ctx.fillStyle=sunGlow;
+            ctx.fillRect(650,0,220,190);
+
+            const cloud = (x,y,s=1)=>{
+              ctx.fillStyle='rgba(255,255,255,0.78)';
+              ctx.beginPath();
+              ctx.ellipse(x,y,32*s,14*s,0,0,Math.PI*2);
+              ctx.ellipse(x+26*s,y+2*s,34*s,12*s,0,0,Math.PI*2);
+              ctx.ellipse(x-24*s,y+5*s,24*s,10*s,0,0,Math.PI*2);
+              ctx.fill();
+            };
+            cloud(155 + Math.sin(state.t*0.006)*8,78,1.1);
+            cloud(515 + Math.sin(state.t*0.004+2)*10,112,0.9);
+            cloud(815 + Math.sin(state.t*0.005+4)*7,138,0.75);
           };
 
 
@@ -100,18 +130,36 @@
             for(let i=0;i<18;i++){
               const gx = -1 + i*1.2;
               const gy = 10.7 + Math.sin(i*0.6)*0.25;
-              const p = iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
-              const sway = Math.sin(state.t*0.04 + i)*1.2;
-              px(p.x+sway, p.y+7, 2, 9, '#4caf50');
-              const petal = i%3===0 ? '#ff6ec7' : (i%3===1 ? '#ffd166' : '#9b7bff');
-              drawDiamond(p.x+sway, p.y+2, 5, 4, petal);
-            }
-          };
+            // Grand plateau alpin uni, doux et non quadrillé
+            drawDiamond(center.x, center.y-20, 640, 318, '#8fdf78');
 
-          const drawForestEdge=(side)=>{
-            for(let i=0;i<11;i++){
-              const gx = side==='left' ? -2.2 : 19.4;
-              const gy = i*1.05 + 1.2;
+            // ombres de relief très douces
+            ctx.fillStyle='#72c763';
+            ctx.moveTo(center.x-640,center.y+139); ctx.lineTo(center.x,center.y+298); ctx.lineTo(center.x,center.y+346); ctx.lineTo(center.x-640,center.y+187);
+            ctx.fillStyle='#7fd36d';
+            ctx.moveTo(center.x+640,center.y+139); ctx.lineTo(center.x,center.y+298); ctx.lineTo(center.x,center.y+346); ctx.lineTo(center.x+640,center.y+187);
+            // lac calme en forme isométrique avec reflet
+            drawDiamond(center.x+210, center.y+62, 118, 46, '#78d8ef');
+            drawDiamond(center.x+210, center.y+70, 92, 30, '#a8efff');
+            ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(center.x+162,center.y+83); ctx.lineTo(center.x+238,center.y+104); ctx.stroke();
+
+            // sentier sinueux relaxant, sans carrelage
+            ctx.fillStyle='#dcc996';
+            ctx.ellipse(center.x-150, center.y+52, 135, 34, -0.35, 0, Math.PI*2);
+            ctx.ellipse(center.x+18, center.y+83, 150, 38, -0.28, 0, Math.PI*2);
+
+            // taches florales pastel ancrées au sol
+            const patch = (dx,dy,col)=>{
+              for(let i=0;i<8;i++){
+                const x=center.x+dx+i*12;
+                const y=center.y+dy+Math.sin(i*1.7)*7;
+                drawDiamond(x,y,5,4,col);
+              }
+            };
+            patch(-315,72,'#ff8bd8');
+            patch(-45,34,'#f8f0a1');
+            patch(250,118,'#c8a0ff');
               const p = iso(gx*44 + (state.t*0.16)%44, gy*44, 0);
               const trunkH = 18 + (i%3)*3;
               // tronc accroché au sol isométrique
@@ -205,15 +253,16 @@
                 if(Math.abs(state.megaFlower.x-b.x)<34 && Math.abs(state.megaFlower.y-b.y)<38){
                   state.score += 10000; // +10k
                   setBonus('Fleur +10k');
-                  state.megaFlower = null;
-                } else if(state.megaFlower.x < -90){
-                  state.megaFlower = null;
-                }
+              state.wind=Math.sin(state.t*0.006)*0.024;
+              b.vy += ((state.touchY-b.y)*0.006*b.agility)+state.wind;
+              const speedMul=slowTimer>0?0.45:0.7;
+                bo.x -= 0.8;
               }
 
 
+            drawSkyGarden();
             drawMegaFlower(state.megaFlower);
-            drawDiamond(p.x-13,p.y+3,10,8,'#f5b041');
+          <div className="ui">Mode Zen • Score: {score} | Bonus: {bonus}</div>
             drawDiamond(p.x+13,p.y+3,10,8,'#f5b041');
 
             // nervures stylisées
