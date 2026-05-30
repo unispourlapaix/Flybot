@@ -1,9 +1,9 @@
-# Flybot React — 3D isométrique enrichi
+# Flybot — 3D isométrique zen
 
 Expérience **3D isométrique zen** avec un jardin alpin, ciel pastel, lac calme et ambiance printemps fleuri.
 
 ## Nouveautés
-- Version navigateur sans transformateur Babel : React production UMD + JavaScript direct pour éviter les erreurs de compilation au chargement.
+- Version navigateur **sans React, sans JSX et sans Babel** : JavaScript direct pour éviter les erreurs `expected expression, got '<'` au chargement.
 - Favicon intégré en data URI pour éviter le 404 `/favicon.ico` sur GitHub Pages.
 - Plateau isométrique uni et relaxant (sans quadrillage), avec relief doux, sentier organique et petit lac pastel.
 - **Mode Zen** : moins d’obstacles, vitesse plus douce, lecture plus relax.
