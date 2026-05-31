@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => match[1]);
+const htmlUrl = new URL('../index.html', import.meta.url);
+const html = readFileSync(htmlUrl, 'utf8');
 const openingScripts = [...html.matchAll(/<script(?:\s[^>]*)?>/gi)].length;
 const closingScripts = [...html.matchAll(/<\/script>/gi)].length;
 
@@ -10,12 +10,25 @@ if (openingScripts !== closingScripts) {
   throw new Error(`Balises script déséquilibrées : ${openingScripts} ouverture(s), ${closingScripts} fermeture(s).`);
 }
 
-if (inlineScripts.length === 0) {
-  throw new Error('Aucun script inline trouvé dans index.html.');
+const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => ({
+  filename: 'index.html:inline-script.js',
+  source: match[1],
+}));
+const localScripts = [...html.matchAll(/<script[^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/gi)]
+  .map((match) => match[1])
+  .filter((src) => !/^(?:https?:)?\/\//i.test(src))
+  .map((src) => {
+    const filename = src.split('?')[0];
+    return { filename, source: readFileSync(new URL(`../${filename}`, import.meta.url), 'utf8') };
+  });
+const scripts = [...inlineScripts, ...localScripts];
+
+if (scripts.length === 0) {
+  throw new Error('Aucun script JavaScript local ou inline trouvé dans index.html.');
 }
 
-inlineScripts.forEach((script, index) => {
-  new vm.Script(script, { filename: `index.html:inline-script-${index + 1}.js` });
+scripts.forEach(({ filename, source }) => {
+  new vm.Script(source, { filename });
 });
 
 const forbiddenRuntimePatterns = [
@@ -25,9 +38,9 @@ const forbiddenRuntimePatterns = [
 ];
 
 for (const { name, pattern } of forbiddenRuntimePatterns) {
-  if (pattern.test(html)) {
+  if (pattern.test(html) || scripts.some(({ source }) => pattern.test(source))) {
     throw new Error(`Motif interdit détecté (${name}) : ${pattern}`);
   }
 }
 
-console.log(`OK: ${inlineScripts.length} script inline valide, balises équilibrées, sans React/JSX/Babel.`);
+console.log(`OK: ${scripts.length} script(s) valide(s), balises équilibrées, sans React/JSX/Babel.`);
