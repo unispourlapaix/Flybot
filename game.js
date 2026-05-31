@@ -1,18 +1,21 @@
-var BUILD_VERSION = '2026.05.31.1';
+var BUILD_VERSION = '2026.05.31.2';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var scoreEl = document.getElementById('score');
 var bonusEl = document.getElementById('bonus');
+var livesEl = document.getElementById('lives');
+var levelEl = document.getElementById('level');
+var flowerEl = document.getElementById('flower');
 var dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
 canvas.width = 960 * dpr;
 canvas.height = 540 * dpr;
 ctx.setTransform(dpr,0,0,dpr,0,0);
 
 var state = {
-  t:0, score:0, gameOver:false,
+  t:0, score:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
   butterfly:{x:200,y:270,vy:0,shield:false,agility:1},
-  wind:0, obstacles:[], bonuses:[], touchY:270, megaFlower:null, nextFlowerScore:100
+  wind:0, obstacles:[], bonuses:[], touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
 };
 
 function rand(a,b){ return Math.random()*(b-a)+a; }
@@ -30,6 +33,39 @@ function setY(clientY){
 window.addEventListener('mousemove',function(e){setY(e.clientY)});
 window.addEventListener('touchstart',function(e){setY(e.touches[0].clientY)},{passive:true});
 window.addEventListener('touchmove',function(e){setY(e.touches[0].clientY)},{passive:true});
+
+window.addEventListener('keydown',function(e){
+  if((e.key===' ' || e.key==='Enter') && state.gameOver) resetGame();
+});
+canvas.addEventListener('click',function(){ if(state.gameOver) resetGame(); });
+
+function updateHud(){
+  scoreEl.textContent=Math.floor(state.score/12);
+  levelEl.textContent=state.level;
+  livesEl.textContent=state.lives===3?'♥♥♥':(state.lives===2?'♥♥♡':(state.lives===1?'♥♡♡':'♡♡♡'));
+  flowerEl.textContent=state.megaFlower?'BUTINER '+Math.floor(state.flowerProgress)+'%':Math.max(0,state.nextFlowerScore-Math.floor(state.flightPoints/12));
+};
+
+function resetEntity(entity,minX,maxX,minY,maxY){
+  entity.x=rand(minX,maxX); entity.y=rand(minY,maxY);
+};
+
+function resetGame(){
+  state.t=0; state.score=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
+  state.butterfly.y=270; state.butterfly.vy=0; state.butterfly.shield=false; state.butterfly.agility=1;
+  state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
+  for(var oi=0;oi<state.obstacles.length;oi++) resetEntity(state.obstacles[oi],980,1480,150,410);
+  for(var bi=0;bi<state.bonuses.length;bi++) resetEntity(state.bonuses[bi],900,1420,100,430);
+  slowTimer=0; shieldTimer=0; agileTimer=0; bonusEl.textContent='AUCUN'; updateHud();
+};
+
+function hitButterfly(obstacle){
+  if(state.invulnerable>0) return;
+  if(state.butterfly.shield){ state.butterfly.shield=false; shieldTimer=0; state.message='BOUCLIER !'; state.messageTimer=95; obstacle.x=-120; return; }
+  state.lives--; state.invulnerable=150; state.message=state.lives>0?'OUPS !':'FIN DE VOL'; state.messageTimer=95; obstacle.x=-120;
+  if(state.lives<=0) state.gameOver=true;
+  updateHud();
+};
 
 function drawDiamond(x,y,w,h,col){
   ctx.fillStyle=col; ctx.beginPath();
@@ -148,6 +184,8 @@ function drawGround(){
 
 function drawButterfly(b){
   var p=iso(b.x*0.6,b.y*0.6,62);
+  ctx.save();
+  if(state.invulnerable>0 && Math.floor(state.invulnerable/8)%2===0) ctx.globalAlpha=0.35;
   /* monarque pixel-art : contour épais, silhouette arcade */
   px(p.x-5,p.y-15,10,27,'#171b26');
   px(p.x-28,p.y-13,22,18,'#171b26');px(p.x+7,p.y-13,22,18,'#171b26');
@@ -158,6 +196,7 @@ function drawButterfly(b){
   px(p.x-19,p.y+10,3,3,'#fffbea');px(p.x+17,p.y+10,3,3,'#fffbea');
   px(p.x-1,p.y-18,3,5,'#171b26');
   if(b.shield){ctx.strokeStyle='#6df7ff';ctx.lineWidth=4;ctx.strokeRect(p.x-34,p.y-23,68,48);}
+  ctx.restore();
 };
 
 function drawObstacle(o){
@@ -204,6 +243,22 @@ function applyBonus(type){
 };
 
 
+function drawGameplayOverlay(){
+  if(state.megaFlower){
+    px(330,474,300,24,'#17233b');
+    px(336,480,Math.floor(288*state.flowerProgress/100),12,'#ff77a8');
+    ctx.fillStyle='#fff1b6';ctx.font='bold 14px monospace';ctx.fillText('BUTINAGE CALME',409,470);
+  }
+  if(state.message && state.messageTimer>0){
+    ctx.fillStyle='#fff1b6';ctx.font='bold 22px monospace';ctx.fillText(state.message,402,312);
+  }
+  if(state.gameOver){
+    ctx.fillStyle='rgba(16,26,43,0.78)';ctx.fillRect(0,0,960,540);
+    ctx.fillStyle='#ffe66d';ctx.font='bold 42px monospace';ctx.fillText('FIN DE VOL',344,240);
+    ctx.fillStyle='#fff1b6';ctx.font='bold 18px monospace';ctx.fillText('TOUCHE ESPACE OU CLIQUE POUR REJOUER',258,286);
+  }
+};
+
 function drawScanlines(){
   ctx.fillStyle='rgba(17,25,43,0.10)';
   for(var y=0;y<540;y+=4) px(0,y,960,1,'rgba(17,25,43,0.10)');
@@ -212,42 +267,49 @@ function drawScanlines(){
 function update(){
   if(state.gameOver) return;
   state.t++;
+  if(state.invulnerable>0) state.invulnerable--;
+  if(state.messageTimer>0) state.messageTimer--;
+  state.level=1+Math.floor(Math.floor(state.flightPoints/12)/300);
   state.wind=Math.sin(state.t*0.006)*0.024;
   var b=state.butterfly;
   b.vy += ((state.touchY-b.y)*0.006*b.agility)+state.wind;
   b.vy *= 0.94;
   b.y = Math.max(70,Math.min(470,b.y+b.vy));
-  if(slowTimer>0) slowTimer--; else if(bonusEl.textContent==='Soleil') bonusEl.textContent='Aucun';
+  if(slowTimer>0) slowTimer--; else if(bonusEl.textContent==='Soleil') bonusEl.textContent='AUCUN';
   if(agileTimer>0) agileTimer--; else b.agility=1;
   if(shieldTimer>0) shieldTimer--; else b.shield=false;
-  var speedMul=slowTimer>0?0.45:0.7;
-  for(var oi=0;oi<state.obstacles.length;oi++){ var o = state.obstacles[oi];
+
+  var flowerSlow=state.megaFlower?0.52:1;
+  var speedMul=(slowTimer>0?0.45:0.7)*flowerSlow*Math.min(1.45,1+(state.level-1)*0.05);
+  for(var oi=0;oi<state.obstacles.length;oi++){ var o=state.obstacles[oi];
     o.x -= o.speed*speedMul;
-    if(o.x<-90){o.x=rand(980,1360);o.y=rand(120,430);}
-    if(Math.abs(o.x-b.x)<38 && Math.abs(o.y-b.y)<44){if(b.shield){b.shield=false;shieldTimer=0;o.x=-120;} else state.gameOver=true;}
+    if(o.x<-90) resetEntity(o,980,1360,120,430);
+    if(Math.abs(o.x-b.x)<26 && Math.abs(o.y-b.y)<30) hitButterfly(o);
   }
-  for(var bi=0;bi<state.bonuses.length;bi++){ var bo = state.bonuses[bi];
-    bo.x -= 0.8;
-    if(bo.x<-80){bo.x=rand(980,1360);bo.y=rand(110,440);bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0];}
-    if(Math.abs(bo.x-b.x)<28 && Math.abs(bo.y-b.y)<34){applyBonus(bo.type);bo.x=-80;}
+  for(var bi=0;bi<state.bonuses.length;bi++){ var bo=state.bonuses[bi];
+    bo.x -= 0.8*flowerSlow;
+    if(bo.x<-80){ resetEntity(bo,980,1360,110,440); bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0]; }
+    if(Math.abs(bo.x-b.x)<25 && Math.abs(bo.y-b.y)<30){ applyBonus(bo.type); bo.x=-80; }
   }
-  var scoreNow = Math.floor(state.score/12);
-  if(!state.megaFlower && scoreNow >= state.nextFlowerScore){
-    state.megaFlower = { x: rand(930,1250), y: rand(170,380) };
-    state.nextFlowerScore += 100;
+
+  var scoreNow=Math.floor(state.flightPoints/12);
+  if(!state.megaFlower && scoreNow>=state.nextFlowerScore){
+    state.megaFlower={x:rand(930,1120),y:rand(170,380)}; state.flowerProgress=0; state.nextFlowerScore+=100; state.message='FLEUR RARE !'; state.messageTimer=95;
   }
   if(state.megaFlower){
-    state.megaFlower.x -= 0.7;
-    if(Math.abs(state.megaFlower.x-b.x)<34 && Math.abs(state.megaFlower.y-b.y)<38){
-      state.score += 10000;
-      bonusEl.textContent='Fleur +10k';
-      state.megaFlower = null;
-    } else if(state.megaFlower.x < -90){
-      state.megaFlower = null;
+    state.megaFlower.x-=0.42;
+    if(Math.abs(state.megaFlower.x-b.x)<42 && Math.abs(state.megaFlower.y-b.y)<46){
+      state.flowerProgress=Math.min(100,state.flowerProgress+1.4);
+      b.vy*=0.88;
+      if(state.flowerProgress>=100){ state.score+=120000; bonusEl.textContent='FLEUR +10K'; state.message='+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
+    } else {
+      state.flowerProgress=Math.max(0,state.flowerProgress-0.18);
     }
+    if(state.megaFlower && state.megaFlower.x<-90){ state.megaFlower=null; state.flowerProgress=0; state.message='FLEUR MANQUEE'; state.messageTimer=95; }
   }
   state.score++;
-  scoreEl.textContent = Math.floor(state.score/12);
+  state.flightPoints++;
+  updateHud();
 };
 
 function render(){
@@ -263,7 +325,7 @@ function render(){
   drawButterfly(state.butterfly);
   drawSpringFlowers();
   drawScanlines();
-  if(state.gameOver){ctx.fillStyle='#000a';ctx.fillRect(0,0,960,540);ctx.fillStyle='#fff';ctx.font='bold 48px sans-serif';ctx.fillText('Game Over',370,250);}
+  drawGameplayOverlay();
 };
 
 function loop(){
@@ -271,4 +333,5 @@ function loop(){
   render();
   requestAnimationFrame(loop);
 };
+updateHud();
 loop();
