@@ -3,6 +3,7 @@
 Expérience **3D isométrique zen** avec un jardin alpin, ciel pastel, lac calme et ambiance printemps fleuri.
 
 ## Nouveautés
+- Nouvelle direction artistique arcade rétro inspirée des jeux isométriques 16-bit : piste alpine lisible, palette contrastée, sprites pixel-art, HUD borne et scanlines légères.
 - Version navigateur **sans React, sans JSX et sans Babel** : moteur isolé dans `game.js` pour éviter les erreurs de parsing HTML/JavaScript au chargement.
 - Script volontairement compatible ES5-ish (fonctions classiques, pas de JSX/React) pour réduire les erreurs de syntaxe navigateur.
 - Favicon intégré en data URI pour éviter le 404 `/favicon.ico` sur GitHub Pages.

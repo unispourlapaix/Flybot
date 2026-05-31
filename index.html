@@ -9,15 +9,15 @@
     <title>Flybot 3D Isométrique</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%A6%8B%3C/text%3E%3C/svg%3E" />
     <style>
-      body { margin:0; background:linear-gradient(#f8d7ff,#bfefff 42%,#dff8d4); font-family:system-ui,sans-serif; overflow:hidden; }
-      #ui { position:fixed; top:8px; left:8px; background:#ffffffcc; padding:8px 12px; border-radius:10px; font-weight:700; z-index:10; }
-      canvas { display:block; width:100vw; height:100vh; image-rendering: pixelated; touch-action:none; }
+      body { margin:0; background:#101a2b; font-family:monospace; overflow:hidden; }
+      #ui { position:fixed; top:12px; left:12px; color:#fff6bd; background:#101a2be8; padding:8px 12px; border:3px solid #f7d354; box-shadow:4px 4px 0 #713f64; font-weight:700; letter-spacing:1px; z-index:10; text-shadow:2px 2px 0 #713f64; }
+      canvas { display:block; width:100vw; height:100vh; image-rendering:pixelated; touch-action:none; }
     </style>
   </head>
   <body>
-    <div id="ui">Mode Zen • Score: <span id="score">0</span> | Bonus: <span id="bonus">Aucun</span> <small id="version">v2026.05.30.2</small></div>
+    <div id="ui">Mode Zen • Score: <span id="score">0</span> | Bonus: <span id="bonus">Aucun</span> <small id="version">v2026.05.31.1</small></div>
     <canvas id="game" width="960" height="540"></canvas>
-    <script src="game.js?v=2026.05.30.2" defer></script>
+    <script src="game.js?v=2026.05.31.1" defer></script>
             if(state.gameOver){ctx.fillStyle='#000a';ctx.fillRect(0,0,960,540);ctx.fillStyle='#fff';ctx.font='bold 48px sans-serif';ctx.fillText('Game Over',370,250);}
             raf=requestAnimationFrame(loop);
           };
