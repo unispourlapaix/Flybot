@@ -42,6 +42,8 @@ if (!sandbox.state.megaFlower) throw new Error('La fleur rare ne se déclenche p
 sandbox.state.megaFlower.x = sandbox.state.butterfly.x;
 sandbox.state.megaFlower.y = sandbox.state.butterfly.y;
 for (let index = 0; index < 80; index++) frame();
+if (!sandbox.state.megaFlower || sandbox.state.flowerProgress<74 || sandbox.state.flowerProgress>75) throw new Error('Le temps de butinage n’a pas augmenté de 50 %.');
+for (let index = 0; index < 28; index++) frame();
 if (sandbox.state.megaFlower) throw new Error('Le butinage calme ne termine pas la collecte.');
 if (Number(elements.get('score').textContent) !== 10000) throw new Error('La fleur rare ne crédite pas le bonus +10k.');
 frame();
@@ -197,6 +199,26 @@ sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
 if(elements.get('harvest-progress').value!==888 || sandbox.state.flowersCollected!==889) throw new Error('Progression au-delà de 888 incorrecte.');
 sandbox.resetGame();
 if(elements.get('harvest-progress').value!==0) throw new Error('Progression non réinitialisée.');
-if(Math.abs(sandbox.wingOpening(0)-sandbox.wingOpening(6))<0.1) throw new Error('Ailes immobiles.');
+if(Math.abs(sandbox.wingOpening(0)-sandbox.wingOpening(60))<0.1) throw new Error('Ailes immobiles.');
 for(let i=0;i<100;i++) if(sandbox.wingOpening(i)<0.22 || sandbox.wingOpening(i)>1) throw new Error('Amplitude des ailes incorrecte.');
 console.log('OK: ailes animées et objectif de 888 fleurs, dépassement et reprise.');
+
+const musicEvents={};let musicPlays=0;
+for(const id of ['music-player','music-track','music-status','music-panel','music-download']) elements.set(id,{setAttribute:noop,addEventListener:noop});
+Object.assign(elements.get('music-player'),{pause:noop,load:noop,play:()=>{musicPlays++;return Promise.resolve();},addEventListener:(name,fn)=>musicEvents[name]=fn});
+new vm.Script(readFileSync(new URL('../music.js',import.meta.url),'utf8')).runInContext(sandbox);
+if(musicPlays) throw new Error('Lecture sans action utilisateur.');
+sandbox.selectMusic(1,true);
+if(!elements.get('music-player').src.endsWith('soar-soar-spirit-of-peace.mp4') || musicPlays!==1) throw new Error('Choix musique incorrect.');
+musicEvents.error();
+if(!elements.get('music-player').src.endsWith('.mp3')) throw new Error('Secours MP3 absent.');
+musicEvents.error();
+if(!elements.get('music-status').textContent) throw new Error('Erreur musique invisible.');
+musicEvents.ended();
+if(sandbox.musicIndex!==2) throw new Error('Enchaînement incorrect.');
+musicEvents.ended();
+if(sandbox.musicIndex!==0) throw new Error('Boucle playlist incorrecte.');
+for(const name of sandbox.musicTracks) for(const ext of ['mp4','mp3']) {
+  if(readFileSync(new URL('../audio/'+name+'.'+ext,import.meta.url)).length===0) throw new Error('Musique vide.');
+}
+console.log('OK: sélection musique, secours MP3, erreurs et boucle de playlist.');

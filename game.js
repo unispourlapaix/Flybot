@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.10';
+var BUILD_VERSION = '2026.10.21.12';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -103,7 +103,7 @@ canvas.addEventListener('pointerdown',function(e){
 });
 canvas.addEventListener('pointermove',function(e){if(e.pointerType==='mouse' || e.buttons) setPointer(e);});
 window.addEventListener('keydown',function(e){
-  if(e.target && /^(SELECT|INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;
+  if(e.target && /^(SELECT|INPUT|TEXTAREA|BUTTON|AUDIO)$/.test(e.target.tagName)) return;
   var key=e.key.toLowerCase();
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(key)>=0) e.preventDefault();
   keys[key]=true;
@@ -280,7 +280,7 @@ function drawGround(){
   }
 };
 
-function wingOpening(time){return 0.22+0.78*(0.5+0.5*Math.sin(time*0.24));}
+function wingOpening(time){return 0.22+0.78*(0.5+0.5*Math.sin(time*0.025));}
 function drawButterfly(b){
   var ground={x:b.x,y:487};
   drawDiamond(ground.x,ground.y-3,18,7,'#937044');
@@ -468,9 +468,9 @@ function update(){
     state.megaFlower={x:rand(930,1120),y:rand(170,380)}; state.flowerProgress=0; state.nextFlowerScore+=100; state.message='FLEUR RARE !'; state.messageTimer=95;
   }
   if(state.megaFlower){
-    state.megaFlower.x-=0.42;
+    state.megaFlower.x-=(0.42/1.5);
     if(Math.abs(state.megaFlower.x-b.x)<42 && Math.abs(state.megaFlower.y-b.y)<46){
-      state.flowerProgress=Math.min(100,state.flowerProgress+1.4);
+      state.flowerProgress=Math.min(100,state.flowerProgress+(1.4/1.5));
       b.vy*=0.88;
       if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); state.bonus='FLEUR +10K'; state.message=state.flowersCollected===FLOWER_GOAL?'harvestCelebration':'+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
     } else {

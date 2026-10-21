@@ -204,6 +204,26 @@ translations.ja["harvestLabel"]="蜜集めの進み具合";
 translations.ja["harvestProgress"]="花 {count} / {goal} 輪・{percent} %";
 translations.ja["harvestDone"]="目標達成！{count}輪の花から蜜を集めました";
 translations.ja["harvestCelebration"]="888輪達成！おめでとう！";
+translations.fr["musicLabel"]="Musique";
+translations.fr["musicPlayer"]="Lecteur de musique";
+translations.fr["musicOpen"]="Ouvrir le morceau";
+translations.fr["musicPlayHint"]="Appuie sur lecture pour écouter la musique.";
+translations.fr["musicError"]="Lecture indisponible. Essaie « Ouvrir le morceau ».";
+translations.en["musicLabel"]="Music";
+translations.en["musicPlayer"]="Music player";
+translations.en["musicOpen"]="Open track";
+translations.en["musicPlayHint"]="Press play to listen to the music.";
+translations.en["musicError"]="Playback unavailable. Try “Open track”.";
+translations.es["musicLabel"]="Música";
+translations.es["musicPlayer"]="Reproductor de música";
+translations.es["musicOpen"]="Abrir canción";
+translations.es["musicPlayHint"]="Pulsa reproducir para escuchar la música.";
+translations.es["musicError"]="Reproducción no disponible. Prueba «Abrir canción».";
+translations.ja["musicLabel"]="音楽";
+translations.ja["musicPlayer"]="音楽プレーヤー";
+translations.ja["musicOpen"]="曲を開く";
+translations.ja["musicPlayHint"]="再生ボタンを押すと音楽が流れます。";
+translations.ja["musicError"]="再生できません。「曲を開く」をお試しください。";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function tr(key,values){
@@ -224,5 +244,6 @@ function setLanguage(value){
   controlStatus.textContent=tr(tilt.enabled?'Tiens le téléphone confortablement : calibration…':'Souris, doigt ou flèches / ZQSD');
   if(tilt.enabled) tilt.neutral=null;
   shareStatus.textContent='';shareFallback.hidden=true;
+  if(typeof refreshMusicLanguage==='function') refreshMusicLanguage();
   updateHud();
 }
