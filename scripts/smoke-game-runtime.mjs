@@ -15,17 +15,18 @@ const canvas = {
   getBoundingClientRect: () => ({ top: 0, left: 0, width: 960, height: 540 }),
   getContext: () => context,
 };
-for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'tilt', 'control-status', 'sound']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop });
+for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'nectar', 'tilt', 'control-status', 'sound', 'share-score', 'share-status', 'share-fallback', 'language']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop, focus: noop, select: noop });
 elements.set('game', canvas);
 let frame;
 const sandbox = {
   console,
-  document: { getElementById: (id) => elements.get(id) },
+  document: { documentElement:{lang:'fr'}, querySelectorAll:()=>[], getElementById: (id) => elements.get(id) },
   Math,
   requestAnimationFrame: (callback) => { frame = callback; },
   window: { addEventListener: noop, devicePixelRatio: 1 },
 };
 vm.createContext(sandbox);
+new vm.Script(readFileSync(new URL('../i18n.js', import.meta.url), 'utf8')).runInContext(sandbox);
 new vm.Script(source, { filename: 'game.js' }).runInContext(sandbox);
 if (typeof frame !== 'function') throw new Error('La boucle de jeu ne programme aucune frame.');
 for (let index = 0; index < 5; index++) frame();
@@ -139,3 +140,51 @@ if(played) throw new Error('Son lancé sans activation.');
 sandbox.soundEnabled=true;sandbox.playSound('butinage');
 if(played!==1 || sandbox.soundPool.butinage.src!=='audio/butinage.wav') throw new Error('Lecture du son incorrecte.');
 console.log('OK: sons activés uniquement à la demande.');
+
+sandbox.resetGame();
+if(Number(elements.get('flower').textContent)!==0) throw new Error('Compteur de fleurs initial incorrect.');
+sandbox.state.obstacles.forEach(o=>o.x=5000);
+sandbox.state.bonuses.forEach(o=>o.x=5000);
+for(let i=0;i<20;i++) frame();
+if(Number(elements.get('flower').textContent)!==0) throw new Error('Le vol modifie les fleurs butinées.');
+sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
+if(Number(elements.get('flower').textContent)!==1 || Number(elements.get('score').textContent)!==100) throw new Error('HUD incohérent après une fleur.');
+sandbox.state.megaFlower={x:900,y:270};sandbox.state.flowerProgress=42;sandbox.updateHud();
+if(Number(elements.get('flower').textContent)!==1 || !elements.get('nectar').textContent.includes('42 %')) throw new Error('Progression confondue avec le compteur.');
+sandbox.collectFlower(sandbox.state.megaFlower,10000);sandbox.state.megaFlower=null;sandbox.updateHud();
+if(Number(elements.get('flower').textContent)!==2 || Number(elements.get('score').textContent)!==10100) throw new Error('HUD incohérent après fleur rare.');
+sandbox.resetGame();
+if(Number(elements.get('flower').textContent)!==0) throw new Error('Compteur non réinitialisé.');
+console.log('OK: points, fleurs butinées et pourcentage séparés dans le HUD.');
+
+sandbox.state.score=10100;sandbox.state.flowersCollected=2;
+let shared;
+sandbox.window.navigator={share:async data=>{shared=data;}};
+await sandbox.shareScore();
+if(!shared.text.includes('10100 points et 2 fleurs') || !shared.url.endsWith('/Flybot/')) throw new Error('Score partagé incorrect.');
+let copied;
+sandbox.window.navigator={clipboard:{writeText:async text=>{copied=text;}}};
+await sandbox.shareScore();
+if(!copied.includes('10100') || !copied.includes('https://')) throw new Error('Copie du score incorrecte.');
+sandbox.window.navigator={share:async()=>{throw {name:'AbortError'};},clipboard:{writeText:async()=>{throw new Error('Copie après annulation.');}}};
+await sandbox.shareScore();
+if(elements.get('share-status').textContent!=='Partage annulé.') throw new Error('Annulation incorrecte.');
+sandbox.window.navigator={};await sandbox.shareScore();
+if(elements.get('share-fallback').hidden || !elements.get('share-fallback').value.includes('10100')) throw new Error('Copie manuelle indisponible.');
+console.log('OK: partage natif, copie, annulation et secours manuel.');
+
+const originalScore=sandbox.state.score;
+for(const lang of ['ja','en','es','fr']) {
+  sandbox.setLanguage(lang);
+  if(sandbox.document.documentElement.lang!==lang || sandbox.state.score!==originalScore) throw new Error('Langue ou partie modifiée.');
+  for(const key of Object.keys(sandbox.translations.fr)) {
+    if(!sandbox.translations[lang][key]) throw new Error('Traduction absente : '+lang+' '+key);
+  }
+  const text=sandbox.scoreShareData().text;
+  if(!text.includes('10100') || /\{\w+\}/.test(text)) throw new Error('Partage non traduit.');
+  sandbox.state.megaFlower={x:900,y:270};sandbox.state.flowerProgress=42;sandbox.updateHud();sandbox.render();
+  if(!elements.get('nectar').textContent.includes('42')) throw new Error('Butinage non traduit.');
+}
+sandbox.setLanguage('invalid');
+if(sandbox.language!=='fr') throw new Error('Repli de langue incorrect.');
+console.log('OK: français, japonais, anglais et espagnol, partie conservée et messages dynamiques traduits.');

@@ -13,14 +13,30 @@
       #ui { position:fixed; top:12px; left:12px; color:#fff6bd; background:#101a2be8; padding:8px 12px; border:3px solid #f7d354; box-shadow:4px 4px 0 #713f64; font-weight:700; letter-spacing:1px; z-index:10; text-shadow:2px 2px 0 #713f64; }
       canvas { display:block; width:min(100vw,177.7778vh); height:auto; aspect-ratio:16/9; margin:auto; image-rendering:pixelated; touch-action:none; }
       #controls { position:fixed; bottom:8px; left:8px; right:8px; z-index:11; color:#fff6bd; font-size:12px; }
+      select { font:inherit; padding:8px; }
       button { font:inherit; background:#fff1b6; color:#17233b; border:2px solid #713f64; padding:8px; cursor:pointer; }
       #control-status { background:#101a2be8; padding:4px; }
+      #controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; max-height:35vh; overflow:auto; }
+      #ui { right:12px; font-size:clamp(10px,1.4vw,14px); }
+      #share-fallback { width:min(90vw,480px); min-height:64px; }
+      #artist-credit { background:#101a2be8; padding:6px; }
+      #artist-credit p { margin:6px 0; }
+      #artist-credit a { color:#ffe66d; }
     </style>
   </head>
   <body>
-    <div id="ui">MODE ZEN • SCORE <span id="score">0</span> • NIVEAU <span id="level">1</span> • VIES <span id="lives">♥♥♥</span> • BONUS <span id="bonus">AUCUN</span> • FLEUR <span id="flower">100</span> <small id="version">v2026.10.21.6</small></div>
+    <div id="ui"><span data-i18n="MODE ZEN">MODE ZEN</span> • <span data-i18n="POINTS">POINTS</span> <span id="score">0</span> • <span data-i18n="NIVEAU">NIVEAU</span> <span id="level">1</span> • <span data-i18n="VIES">VIES</span> <span id="lives">♥♥♥</span> • <span data-i18n="BONUS">BONUS</span> <span id="bonus">AUCUN</span> • <span data-i18n="FLEURS BUTINÉES">FLEURS BUTINÉES</span> <span id="flower">0</span> • <span id="nectar">FLEUR +100 • RARE +10 000</span> <small id="version">v2026.10.21.9</small></div>
     <canvas id="game" width="960" height="540"></canvas>
-    <div id="controls"><button id="sound" type="button" aria-pressed="false">Son : coupé</button> <button id="tilt" type="button" aria-pressed="false">Activer l’inclinaison</button> <span id="control-status" role="status">Souris, doigt ou flèches / ZQSD</span></div>
-    <script src="game.js?v=2026.10.21.6" defer></script>
+    <div id="controls"><label><span data-i18n="Langue">Langue</span> <select id="language"><option value="fr">Français</option><option value="ja">日本語</option><option value="en">English</option><option value="es">Español</option></select></label> <button id="share-score" type="button" data-i18n="Partager mon score">Partager mon score</button> <button id="sound" type="button" aria-pressed="false">Son : coupé</button> <button id="tilt" type="button" aria-pressed="false">Activer l’inclinaison</button> <span id="control-status" role="status">Souris, doigt ou flèches / ZQSD</span>
+      <span id="share-status" role="status" aria-live="polite"></span>
+      <textarea id="share-fallback" aria-label="Score à copier" readonly hidden></textarea>
+      <details id="artist-credit"><summary data-i18n="Artiste et musiques">Artiste et musiques</summary>
+        <p id="artist-info"><span data-i18n="Artiste :">Artiste :</span> <strong>Emmanuel Payet</strong> — <a href="https://emmanuel.gallery/" target="_blank" rel="noopener noreferrer">emmanuel.gallery</a> · <a href="https://www.emmanuelpayet.art" target="_blank" rel="noopener noreferrer">emmanuelpayet.art</a></p>
+        <p>Vole, vole, Esprit de paix • Soar, soar, Spirit of Peace • Je lève mes yeux vers les montagnes…</p>
+        <p data-i18n="Effets du jeu : carillons synthétisés pour Flybot.">Effets du jeu : carillons synthétisés pour Flybot.</p>
+      </details>
+    </div>
+    <script src="i18n.js?v=2026.10.21.9" defer></script>
+    <script src="game.js?v=2026.10.21.9" defer></script>
   </body>
 </html>

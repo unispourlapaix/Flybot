@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.6';
+var BUILD_VERSION = '2026.10.21.9';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -7,16 +7,43 @@ var bonusEl = document.getElementById('bonus');
 var livesEl = document.getElementById('lives');
 var levelEl = document.getElementById('level');
 var flowerEl = document.getElementById('flower');
+var nectarEl = document.getElementById('nectar');
 var dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
 canvas.width = 960 * dpr;
 canvas.height = 540 * dpr;
 ctx.setTransform(dpr,0,0,dpr,0,0);
 
 var state = {
-  t:0, score:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
+  t:0, score:0, flowersCollected:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
   butterfly:{x:200,y:270,vx:0,vy:0,shield:false,agility:1},
   wind:0, fireworks:[], obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
 };
+
+var shareButton=document.getElementById('share-score');
+var shareStatus=document.getElementById('share-status');
+var shareFallback=document.getElementById('share-fallback');
+function scoreShareData(){
+  return {title:tr('Mon vol sur Flybot'),
+    text:tr('shareText',{score:Math.floor(state.score),flowers:state.flowersCollected}),
+    url:'https://unispourlapaix.github.io/Flybot/'};
+}
+async function shareScore(){
+  var data=scoreShareData(), text=data.text+'\n'+data.url;
+  shareFallback.hidden=true;shareStatus.textContent='';
+  shareButton.disabled=true;
+  try{
+    if(window.navigator && typeof window.navigator.share==='function'){
+      try{await window.navigator.share(data);shareStatus.textContent=tr('Partage terminé.');return;}
+      catch(error){if(error.name==='AbortError'){shareStatus.textContent=tr('Partage annulé.');return;}}
+    }
+    if(window.navigator && window.navigator.clipboard){
+      try{await window.navigator.clipboard.writeText(text);shareStatus.textContent=tr('Score et lien copiés !');return;}catch(error){}
+    }
+    shareFallback.value=text;shareFallback.hidden=false;shareFallback.focus();shareFallback.select();
+    shareStatus.textContent=tr('Copie ce texte pour partager ton score.');
+  }finally{shareButton.disabled=false;}
+}
+shareButton.addEventListener('click',shareScore);
 
 // Lecture activée uniquement après une action volontaire du joueur.
 var soundEnabled=false, soundPool={}, soundButton=document.getElementById('sound');
@@ -29,7 +56,7 @@ function playSound(name){
 }
 soundButton.addEventListener('click',function(){
   soundEnabled=!soundEnabled;
-  soundButton.textContent=soundEnabled?'Son : activé':'Son : coupé';
+  soundButton.textContent=soundEnabled?tr('Son : activé'):tr('Son : coupé');
   soundButton.setAttribute('aria-pressed',String(soundEnabled));
   if(soundEnabled) playSound('envol');
   else Object.keys(soundPool).forEach(function(key){soundPool[key].pause();});
@@ -73,6 +100,7 @@ canvas.addEventListener('pointerdown',function(e){
 });
 canvas.addEventListener('pointermove',function(e){if(e.pointerType==='mouse' || e.buttons) setPointer(e);});
 window.addEventListener('keydown',function(e){
+  if(e.target && /^(SELECT|INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName)) return;
   var key=e.key.toLowerCase();
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(key)>=0) e.preventDefault();
   keys[key]=true;
@@ -83,8 +111,8 @@ window.addEventListener('blur',function(){keys={};tilt.x=0;tilt.y=0;});
 function stopTilt(message){
   tilt.enabled=false;tilt.neutral=null;tilt.x=0;tilt.y=0;
   state.touchX=state.butterfly.x;state.touchY=state.butterfly.y;
-  tiltButton.textContent='Activer l’inclinaison';tiltButton.setAttribute('aria-pressed','false');
-  controlStatus.textContent=message || 'Souris, doigt ou flèches / ZQSD';
+  tiltButton.textContent=tr('Activer l’inclinaison');tiltButton.setAttribute('aria-pressed','false');
+  controlStatus.textContent=message || tr('Souris, doigt ou flèches / ZQSD');
 }
 function handleOrientation(e){
   if(!tilt.enabled || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
@@ -95,22 +123,22 @@ function handleOrientation(e){
   if(!tilt.neutral || tilt.angle!==angle){tilt.neutral={x:x,y:y};tilt.angle=angle;}
   function axis(v){return Math.abs(v)<2?0:clamp((v-Math.sign(v)*2)/20,-1,1);}
   tilt.x=axis(x-tilt.neutral.x);tilt.y=axis(y-tilt.neutral.y);
-  controlStatus.textContent='Incline pour voler • position de départ calibrée';
+  controlStatus.textContent=tr('Incline pour voler • position de départ calibrée');
 }
 window.addEventListener('deviceorientation',handleOrientation);
 tiltButton.addEventListener('click',async function(){
   if(tilt.enabled){stopTilt();return;}
-  if(!window.isSecureContext){stopTilt('Inclinaison : ouvre le jeu en HTTPS ou localhost.');return;}
+  if(!window.isSecureContext){stopTilt(tr('Inclinaison : ouvre le jeu en HTTPS ou localhost.'));return;}
   var sensor=window.DeviceOrientationEvent;
-  if(!sensor){stopTilt('Capteurs indisponibles : utilise le doigt ou les flèches.');return;}
+  if(!sensor){stopTilt(tr('Capteurs indisponibles : utilise le doigt ou les flèches.'));return;}
   try{
     if(typeof sensor.requestPermission==='function' && await sensor.requestPermission()!=='granted'){
-      stopTilt('Accès aux capteurs refusé : le contrôle tactile reste disponible.');return;
+      stopTilt(tr('Accès aux capteurs refusé : le contrôle tactile reste disponible.'));return;
     }
     tilt.enabled=true;tilt.neutral=null;tilt.x=0;tilt.y=0;
-    tiltButton.textContent='Désactiver l’inclinaison';tiltButton.setAttribute('aria-pressed','true');
-    controlStatus.textContent='Tiens le téléphone confortablement : calibration…';
-    window.setTimeout(function(){if(tilt.enabled && !tilt.neutral) stopTilt('Aucune donnée capteur : utilise le doigt ou les flèches.');},4000);
+    tiltButton.textContent=tr('Désactiver l’inclinaison');tiltButton.setAttribute('aria-pressed','true');
+    controlStatus.textContent=tr('Tiens le téléphone confortablement : calibration…');
+    window.setTimeout(function(){if(tilt.enabled && !tilt.neutral) stopTilt(tr('Aucune donnée capteur : utilise le doigt ou les flèches.'));},4000);
   }catch(error){stopTilt('Capteurs indisponibles : le contrôle tactile reste disponible.');}
 });
 canvas.addEventListener('click',function(){ if(state.gameOver) resetGame(); });
@@ -119,7 +147,9 @@ function updateHud(){
   scoreEl.textContent=Math.floor(state.score);
   levelEl.textContent=state.level;
   livesEl.textContent=state.lives===3?'♥♥♥':(state.lives===2?'♥♥♡':(state.lives===1?'♥♡♡':'♡♡♡'));
-  flowerEl.textContent=state.megaFlower?'BUTINER '+Math.floor(state.flowerProgress)+'%':Math.max(0,state.nextFlowerScore-Math.floor(state.flightPoints/12));
+  flowerEl.textContent=state.flowersCollected;
+  bonusEl.textContent=tr(state.bonus || 'AUCUN');
+  nectarEl.textContent=state.megaFlower?tr('FLEUR RARE : BUTINAGE {progress} %',{progress:Math.floor(state.flowerProgress)}):tr('FLEUR +100 • RARE +10 000');
 };
 
 function resetEntity(entity,minX,maxX,minY,maxY){
@@ -127,12 +157,12 @@ function resetEntity(entity,minX,maxX,minY,maxY){
 };
 
 function resetGame(){
-  state.t=0; state.fireworks=[]; state.score=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
+  state.t=0; state.fireworks=[]; state.score=0; state.flowersCollected=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
   state.butterfly.x=200; state.butterfly.y=270; state.butterfly.vx=0; state.butterfly.vy=0; tilt.neutral=null; state.butterfly.shield=false; state.butterfly.agility=1;
   state.touchX=200; state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
   for(var oi=0;oi<state.obstacles.length;oi++) resetObstacle(state.obstacles[oi],oi);
   for(var bi=0;bi<state.bonuses.length;bi++) resetEntity(state.bonuses[bi],900,1420,100,430);
-  slowTimer=0; shieldTimer=0; agileTimer=0; bonusEl.textContent='AUCUN'; updateHud();
+  slowTimer=0; shieldTimer=0; agileTimer=0; state.bonus='AUCUN'; updateHud();
 };
 
 function hitButterfly(obstacle){
@@ -341,6 +371,7 @@ function drawFireworks(){
 }
 function collectFlower(f,points){
   state.score+=points;
+  state.flowersCollected++;
   playSound(points>=10000?'fleur-rare':'butinage');
   flowerFirework(f.x,f.y);
   state.message='+'+points+' !';state.messageTimer=70;
@@ -348,7 +379,7 @@ function collectFlower(f,points){
 
 var slowTimer=0, shieldTimer=0, agileTimer=0;
 function applyBonus(type){
-  bonusEl.textContent=type;
+  state.bonus=type;
   if(type==='Fleur'){agileTimer=280; state.butterfly.agility=1.7;}
   if(type==='Soleil'){slowTimer=280;}
   if(type==='Abeille'){shieldTimer=280; state.butterfly.shield=true;}
@@ -356,19 +387,21 @@ function applyBonus(type){
 
 
 function drawGameplayOverlay(){
+  ctx.save();ctx.textAlign="center";
   if(state.megaFlower){
     px(330,474,300,24,'#17233b');
     px(336,480,Math.floor(288*state.flowerProgress/100),12,'#ff77a8');
-    ctx.fillStyle='#fff1b6';ctx.font='bold 14px monospace';ctx.fillText('BUTINAGE CALME',409,470);
+    ctx.fillStyle='#fff1b6';ctx.font='bold 14px monospace';ctx.fillText(tr('BUTINAGE CALME'),480,470,290);
   }
   if(state.message && state.messageTimer>0){
-    ctx.fillStyle='#fff1b6';ctx.font='bold 22px monospace';ctx.fillText(state.message,402,312);
+    ctx.fillStyle='#fff1b6';ctx.font='bold 22px monospace';ctx.fillText(tr(state.message),480,312);
   }
   if(state.gameOver){
     ctx.fillStyle='rgba(16,26,43,0.78)';ctx.fillRect(0,0,960,540);
-    ctx.fillStyle='#ffe66d';ctx.font='bold 42px monospace';ctx.fillText('FIN DE VOL',344,240);
-    ctx.fillStyle='#fff1b6';ctx.font='bold 18px monospace';ctx.fillText('TOUCHE ESPACE OU CLIQUE POUR REJOUER',258,286);
+    ctx.fillStyle='#ffe66d';ctx.font='bold 42px monospace';ctx.fillText(tr('FIN DE VOL'),480,240,850);
+    ctx.fillStyle='#fff1b6';ctx.font='bold 18px monospace';ctx.fillText(tr('TOUCHE ESPACE OU CLIQUE POUR REJOUER'),480,286,900);
   }
+  ctx.restore();
 };
 
 function drawScanlines(){
@@ -398,7 +431,7 @@ function update(){
   }
   b.x=clamp(b.x+b.vx,35,925);
   b.y=clamp(b.y+b.vy,track.minY,track.maxY);
-  if(slowTimer>0) slowTimer--; else if(bonusEl.textContent==='Soleil') bonusEl.textContent='AUCUN';
+  if(slowTimer>0) slowTimer--; else if(state.bonus==='Soleil') state.bonus='AUCUN';
   if(agileTimer>0) agileTimer--; else b.agility=1;
   if(shieldTimer>0) shieldTimer--; else b.shield=false;
 
@@ -424,7 +457,7 @@ function update(){
     if(Math.abs(state.megaFlower.x-b.x)<42 && Math.abs(state.megaFlower.y-b.y)<46){
       state.flowerProgress=Math.min(100,state.flowerProgress+1.4);
       b.vy*=0.88;
-      if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); bonusEl.textContent='FLEUR +10K'; state.message='+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
+      if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); state.bonus='FLEUR +10K'; state.message='+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
     } else {
       state.flowerProgress=Math.max(0,state.flowerProgress-0.18);
     }
@@ -455,5 +488,6 @@ function loop(){
   render();
   requestAnimationFrame(loop);
 };
-updateHud();
+document.getElementById('language').addEventListener('change',function(e){setLanguage(e.target.value);});
+setLanguage(language);
 loop();
