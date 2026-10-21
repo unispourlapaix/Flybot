@@ -188,6 +188,22 @@ var translations={
     "shareText": "🦋 Flybotのスコア：{score}点、蜜を集めた花：{flowers}輪！あなたも飛んでみよう！"
   }
 };
+translations.fr["harvestLabel"]="Progression du butinage";
+translations.fr["harvestProgress"]="{count} / {goal} fleurs • {percent} %";
+translations.fr["harvestDone"]="Objectif atteint ! {count} fleurs butinées";
+translations.fr["harvestCelebration"]="888 FLEURS ! BRAVO !";
+translations.en["harvestLabel"]="Flower collection progress";
+translations.en["harvestProgress"]="{count} / {goal} flowers • {percent}%";
+translations.en["harvestDone"]="Goal reached! {count} flowers collected";
+translations.en["harvestCelebration"]="888 FLOWERS! WELL DONE!";
+translations.es["harvestLabel"]="Progreso de recolección";
+translations.es["harvestProgress"]="{count} / {goal} flores • {percent} %";
+translations.es["harvestDone"]="¡Objetivo logrado! {count} flores recolectadas";
+translations.es["harvestCelebration"]="¡888 FLORES! ¡ENHORABUENA!";
+translations.ja["harvestLabel"]="蜜集めの進み具合";
+translations.ja["harvestProgress"]="花 {count} / {goal} 輪・{percent} %";
+translations.ja["harvestDone"]="目標達成！{count}輪の花から蜜を集めました";
+translations.ja["harvestCelebration"]="888輪達成！おめでとう！";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function tr(key,values){

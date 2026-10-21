@@ -6,7 +6,7 @@ const elements = new Map();
 const noop = () => {};
 const gradient = { addColorStop: noop };
 const context = {
-  translate: noop, rotate: noop, beginPath: noop, closePath: noop, clearRect: noop, ellipse: noop, fill: noop, fillRect: noop,
+  scale: noop, translate: noop, rotate: noop, beginPath: noop, closePath: noop, clearRect: noop, ellipse: noop, fill: noop, fillRect: noop,
   fillText: noop, lineTo: noop, moveTo: noop, restore: noop, save: noop, setTransform: noop,
   stroke: noop, strokeRect: noop, createLinearGradient: () => gradient,
 };
@@ -15,7 +15,7 @@ const canvas = {
   getBoundingClientRect: () => ({ top: 0, left: 0, width: 960, height: 540 }),
   getContext: () => context,
 };
-for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'nectar', 'tilt', 'control-status', 'sound', 'share-score', 'share-status', 'share-fallback', 'language']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop, focus: noop, select: noop });
+for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'nectar', 'tilt', 'control-status', 'sound', 'share-score', 'share-status', 'share-fallback', 'language', 'harvest-progress', 'harvest-text']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop, focus: noop, select: noop });
 elements.set('game', canvas);
 let frame;
 const sandbox = {
@@ -188,3 +188,15 @@ for(const lang of ['ja','en','es','fr']) {
 sandbox.setLanguage('invalid');
 if(sandbox.language!=='fr') throw new Error('Repli de langue incorrect.');
 console.log('OK: français, japonais, anglais et espagnol, partie conservée et messages dynamiques traduits.');
+
+sandbox.resetGame();
+if(elements.get('harvest-progress').value!==0) throw new Error('Progression initiale incorrecte.');
+sandbox.state.flowersCollected=887;sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
+if(elements.get('harvest-progress').value!==888 || sandbox.state.flowersCollected!==888 || sandbox.state.message!=='harvestCelebration') throw new Error('Objectif 888 incorrect.');
+sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
+if(elements.get('harvest-progress').value!==888 || sandbox.state.flowersCollected!==889) throw new Error('Progression au-delà de 888 incorrecte.');
+sandbox.resetGame();
+if(elements.get('harvest-progress').value!==0) throw new Error('Progression non réinitialisée.');
+if(Math.abs(sandbox.wingOpening(0)-sandbox.wingOpening(6))<0.1) throw new Error('Ailes immobiles.');
+for(let i=0;i<100;i++) if(sandbox.wingOpening(i)<0.22 || sandbox.wingOpening(i)>1) throw new Error('Amplitude des ailes incorrecte.');
+console.log('OK: ailes animées et objectif de 888 fleurs, dépassement et reprise.');

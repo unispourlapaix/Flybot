@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.9';
+var BUILD_VERSION = '2026.10.21.10';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -8,6 +8,9 @@ var livesEl = document.getElementById('lives');
 var levelEl = document.getElementById('level');
 var flowerEl = document.getElementById('flower');
 var nectarEl = document.getElementById('nectar');
+var FLOWER_GOAL=888;
+var harvestBar=document.getElementById('harvest-progress');
+var harvestText=document.getElementById('harvest-text');
 var dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
 canvas.width = 960 * dpr;
 canvas.height = 540 * dpr;
@@ -148,6 +151,11 @@ function updateHud(){
   levelEl.textContent=state.level;
   livesEl.textContent=state.lives===3?'♥♥♥':(state.lives===2?'♥♥♡':(state.lives===1?'♥♡♡':'♡♡♡'));
   flowerEl.textContent=state.flowersCollected;
+  var harvested=Math.min(FLOWER_GOAL,state.flowersCollected);
+  harvestBar.max=FLOWER_GOAL;harvestBar.value=harvested;
+  harvestBar.setAttribute('aria-label',tr('harvestLabel'));
+  harvestText.textContent=tr(state.flowersCollected>=FLOWER_GOAL?'harvestDone':'harvestProgress',
+    {count:state.flowersCollected,goal:FLOWER_GOAL,percent:Math.floor(harvested/FLOWER_GOAL*100)});
   bonusEl.textContent=tr(state.bonus || 'AUCUN');
   nectarEl.textContent=state.megaFlower?tr('FLEUR RARE : BUTINAGE {progress} %',{progress:Math.floor(state.flowerProgress)}):tr('FLEUR +100 • RARE +10 000');
 };
@@ -272,6 +280,7 @@ function drawGround(){
   }
 };
 
+function wingOpening(time){return 0.22+0.78*(0.5+0.5*Math.sin(time*0.24));}
 function drawButterfly(b){
   var ground={x:b.x,y:487};
   drawDiamond(ground.x,ground.y-3,18,7,'#937044');
@@ -282,13 +291,16 @@ function drawButterfly(b){
   ctx.rotate(Math.PI/2);
   p={x:0,y:0};
   /* monarque pixel-art : contour épais, silhouette arcade */
-  px(p.x-5,p.y-15,10,27,'#171b26');
+  // Les ailes se replient autour du corps sans modifier la collision.
+  ctx.save();ctx.scale(wingOpening(state.t),1);
   px(p.x-28,p.y-13,22,18,'#171b26');px(p.x+7,p.y-13,22,18,'#171b26');
   px(p.x-23,p.y-9,16,12,'#f58b3d');px(p.x+8,p.y-9,16,12,'#f58b3d');
   px(p.x-22,p.y+5,15,13,'#171b26');px(p.x+8,p.y+5,15,13,'#171b26');
   px(p.x-18,p.y+7,11,9,'#f7bd4f');px(p.x+8,p.y+7,11,9,'#f7bd4f');
   px(p.x-24,p.y-10,3,3,'#fffbea');px(p.x+21,p.y-10,3,3,'#fffbea');
   px(p.x-19,p.y+10,3,3,'#fffbea');px(p.x+17,p.y+10,3,3,'#fffbea');
+  ctx.restore();
+  px(p.x-5,p.y-15,10,27,'#171b26');
   px(p.x-1,p.y-18,3,5,'#171b26');
   if(b.shield){ctx.strokeStyle='#6df7ff';ctx.lineWidth=4;ctx.strokeRect(p.x-34,p.y-23,68,48);}
   ctx.restore();
@@ -372,9 +384,12 @@ function drawFireworks(){
 function collectFlower(f,points){
   state.score+=points;
   state.flowersCollected++;
+  if(state.flowersCollected===FLOWER_GOAL){
+    flowerFirework(300,180);flowerFirework(480,140);flowerFirework(660,180);
+  }
   playSound(points>=10000?'fleur-rare':'butinage');
   flowerFirework(f.x,f.y);
-  state.message='+'+points+' !';state.messageTimer=70;
+  state.message=state.flowersCollected===FLOWER_GOAL?'harvestCelebration':'+'+points+' !';state.messageTimer=95;
 }
 
 var slowTimer=0, shieldTimer=0, agileTimer=0;
@@ -415,7 +430,7 @@ function update(){
   state.t++;
   if(state.invulnerable>0) state.invulnerable--;
   if(state.messageTimer>0) state.messageTimer--;
-  state.level=1+Math.floor(Math.floor(state.flightPoints/12)/300);
+  state.level=Math.min(8,1+Math.floor(state.flowersCollected/111));
   state.wind=Math.sin(state.t*0.006)*0.024;
   var b=state.butterfly;
   var dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.q||keys.a?1:0);
@@ -457,7 +472,7 @@ function update(){
     if(Math.abs(state.megaFlower.x-b.x)<42 && Math.abs(state.megaFlower.y-b.y)<46){
       state.flowerProgress=Math.min(100,state.flowerProgress+1.4);
       b.vy*=0.88;
-      if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); state.bonus='FLEUR +10K'; state.message='+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
+      if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); state.bonus='FLEUR +10K'; state.message=state.flowersCollected===FLOWER_GOAL?'harvestCelebration':'+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
     } else {
       state.flowerProgress=Math.max(0,state.flowerProgress-0.18);
     }
