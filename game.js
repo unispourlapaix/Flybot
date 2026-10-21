@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.05.31.2';
+var BUILD_VERSION = '2026.10.21.1';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -20,6 +20,20 @@ var state = {
 
 function rand(a,b){ return Math.random()*(b-a)+a; }
 function iso(x,y,z){ z = z || 0; return {x:(x-y)*1.15+480,y:(x+y)*0.58-z+52}; }
+
+// Coordonnées de jeu communes : x avance sur la piste, y traverse sa largeur.
+var track = {originX:100, originY:340, alongX:0.70, alongY:0.20, acrossX:-0.24, acrossY:0.18, minY:70, maxY:470, height:42};
+function projectTrack(x,y,z){
+  return {x:track.originX+x*track.alongX+(y-270)*track.acrossX,
+    y:track.originY+x*track.alongY+(y-270)*track.acrossY-(z || 0)};
+}
+function trackPolygon(start,end,minY,maxY,color){
+  var points=[projectTrack(start,minY),projectTrack(end,minY),projectTrack(end,maxY),projectTrack(start,maxY)];
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+  for(var i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y);
+  ctx.closePath();ctx.fill();
+}
+
 function px(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),w,h)}
 function edge(x,y,w,h,col){col = col || '#1f1f1f'; ctx.strokeStyle=col;ctx.lineWidth=1;ctx.strokeRect(Math.round(x)+0.5,Math.round(y)+0.5,w,h)}
 
@@ -28,7 +42,9 @@ for(var i=0;i<6;i++) state.bonuses.push({x:rand(900,1420),y:rand(100,430),type:[
 
 function setY(clientY){
   var r=canvas.getBoundingClientRect();
-  state.touchY=(clientY-r.top)*(540/r.height);
+  var screenY=(clientY-r.top)*(540/r.height);
+  var center=projectTrack(state.butterfly.x,270,track.height);
+  state.touchY=Math.max(track.minY,Math.min(track.maxY,270+(screenY-center.y)/track.acrossY));
 };
 window.addEventListener('mousemove',function(e){setY(e.clientY)});
 window.addEventListener('touchstart',function(e){setY(e.touches[0].clientY)},{passive:true});
@@ -157,15 +173,11 @@ function drawGround(){
   ctx.fillStyle='#2b594f';ctx.beginPath();
   ctx.moveTo(center.x+622,center.y+106);ctx.lineTo(center.x,center.y+254);ctx.lineTo(center.x,center.y+304);ctx.lineTo(center.x+622,center.y+156);ctx.closePath();ctx.fill();
 
-  /* piste isométrique lisible façon arcade rétro */
-  ctx.fillStyle='#b87850';ctx.beginPath();
-  ctx.moveTo(center.x-560,center.y+74);ctx.lineTo(center.x-430,center.y+28);ctx.lineTo(center.x+555,center.y+235);ctx.lineTo(center.x+415,center.y+270);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#e1b06e';ctx.beginPath();
-  ctx.moveTo(center.x-546,center.y+72);ctx.lineTo(center.x-438,center.y+38);ctx.lineTo(center.x+536,center.y+239);ctx.lineTo(center.x+424,center.y+260);ctx.closePath();ctx.fill();
+  // Le sol et les entités partagent exactement les mêmes axes.
+  trackPolygon(-100,1220,track.minY-20,track.maxY+20,'#b87850');
+  trackPolygon(-100,1220,track.minY,track.maxY,'#e1b06e');
   for(var i=0;i<12;i++){
-    var x=center.x-440+i*82;
-    var y=center.y+50+i*17;
-    px(x,y,30,4,'#f7d98a');
+    trackPolygon(-70+i*115,-30+i*115,263,277,'#f7d98a');
   }
 
   drawDiamond(center.x+214,center.y+58,122,46,'#3c8db2');
@@ -183,9 +195,14 @@ function drawGround(){
 };
 
 function drawButterfly(b){
-  var p=iso(b.x*0.6,b.y*0.6,62);
+  var ground=projectTrack(b.x,b.y,0);
+  drawDiamond(ground.x,ground.y-3,18,7,'#937044');
+  var p=projectTrack(b.x,b.y,track.height);
   ctx.save();
   if(state.invulnerable>0 && Math.floor(state.invulnerable/8)%2===0) ctx.globalAlpha=0.35;
+  ctx.translate(p.x,p.y);
+  ctx.rotate(Math.atan2(track.alongY,track.alongX)+Math.PI/2);
+  p={x:0,y:0};
   /* monarque pixel-art : contour épais, silhouette arcade */
   px(p.x-5,p.y-15,10,27,'#171b26');
   px(p.x-28,p.y-13,22,18,'#171b26');px(p.x+7,p.y-13,22,18,'#171b26');
@@ -200,7 +217,7 @@ function drawButterfly(b){
 };
 
 function drawObstacle(o){
-  var p=iso(o.x*0.6,o.y*0.6,58);
+  var p=projectTrack(o.x,o.y,0);
   px(p.x-16,p.y-40,32,42,'#1d3c42');
   px(p.x-12,p.y-37,24,36,'#74454d');
   px(p.x-8,p.y-33,8,28,'#9b614f');
@@ -210,7 +227,7 @@ function drawObstacle(o){
 };
 
 function drawBonus(b){
-  var p=iso(b.x*0.6,b.y*0.6,52);
+  var p=projectTrack(b.x,b.y,track.height);
   px(p.x-13,p.y-13,26,26,'#17233b');
   px(p.x-10,p.y-10,20,20,'#fff1b6');
   if(b.type==='Fleur'){
@@ -226,7 +243,7 @@ function drawBonus(b){
 
 function drawMegaFlower(f){
   if(!f) return;
-  var p=iso(f.x*0.6,f.y*0.6,58);
+  var p=projectTrack(f.x,f.y,track.height);
   px(p.x-20,p.y-24,40,42,'#17233b');
   px(p.x-3,p.y+2,6,15,'#2f824f');
   px(p.x-16,p.y-12,32,11,'#ff5f9e');
@@ -274,7 +291,7 @@ function update(){
   var b=state.butterfly;
   b.vy += ((state.touchY-b.y)*0.006*b.agility)+state.wind;
   b.vy *= 0.94;
-  b.y = Math.max(70,Math.min(470,b.y+b.vy));
+  b.y = Math.max(track.minY,Math.min(track.maxY,b.y+b.vy));
   if(slowTimer>0) slowTimer--; else if(bonusEl.textContent==='Soleil') bonusEl.textContent='AUCUN';
   if(agileTimer>0) agileTimer--; else b.agility=1;
   if(shieldTimer>0) shieldTimer--; else b.shield=false;

@@ -6,7 +6,7 @@ const elements = new Map();
 const noop = () => {};
 const gradient = { addColorStop: noop };
 const context = {
-  beginPath: noop, closePath: noop, clearRect: noop, ellipse: noop, fill: noop, fillRect: noop,
+  translate: noop, rotate: noop, beginPath: noop, closePath: noop, clearRect: noop, ellipse: noop, fill: noop, fillRect: noop,
   fillText: noop, lineTo: noop, moveTo: noop, restore: noop, save: noop, setTransform: noop,
   stroke: noop, strokeRect: noop, createLinearGradient: () => gradient,
 };
@@ -65,3 +65,14 @@ sandbox.resetGame();
 if (sandbox.state.gameOver || sandbox.state.lives !== 3) throw new Error('La reprise de partie ne restaure pas les trois vies.');
 
 console.log('OK: moteur, HUD, butinage +10k sans cascade, collisions protégées et reprise validés.');
+
+// La commande écran doit retrouver la voie projetée à toute largeur de piste.
+for (const lane of [70, 270, 470]) {
+  const point = sandbox.projectTrack(sandbox.state.butterfly.x, lane, sandbox.track.height);
+  sandbox.setY(point.y);
+  if (Math.abs(sandbox.state.touchY - lane) > 0.00001) throw new Error('Commande hors du repère de la piste.');
+}
+const start = sandbox.projectTrack(0,270);
+const end = sandbox.projectTrack(100,270);
+if (Math.abs((end.y-start.y)/(end.x-start.x)-sandbox.track.alongY/sandbox.track.alongX)>0.00001) throw new Error('Axe de défilement incohérent.');
+console.log('OK: projection commune de la piste et commande souris inversée.');
