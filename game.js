@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.1';
+var BUILD_VERSION = '2026.10.21.3';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -19,32 +19,26 @@ var state = {
 };
 
 function rand(a,b){ return Math.random()*(b-a)+a; }
-function iso(x,y,z){ z = z || 0; return {x:(x-y)*1.15+480,y:(x+y)*0.58-z+52}; }
-
-// Coordonnées de jeu communes : x avance sur la piste, y traverse sa largeur.
-var track = {originX:100, originY:340, alongX:0.70, alongY:0.20, acrossX:-0.24, acrossY:0.18, minY:70, maxY:470, height:42};
-function projectTrack(x,y,z){
-  return {x:track.originX+x*track.alongX+(y-270)*track.acrossX,
-    y:track.originY+x*track.alongY+(y-270)*track.acrossY-(z || 0)};
-}
-function trackPolygon(start,end,minY,maxY,color){
-  var points=[projectTrack(start,minY),projectTrack(end,minY),projectTrack(end,maxY),projectTrack(start,maxY)];
-  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
-  for(var i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y);
-  ctx.closePath();ctx.fill();
-}
+// Vue de côté : les coordonnées du jeu correspondent aux pixels du canvas.
+var track = {minY:70, maxY:470, height:0};
+function projectTrack(x,y,z){ return {x:x,y:y-(z || 0)}; }
 
 function px(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),w,h)}
 function edge(x,y,w,h,col){col = col || '#1f1f1f'; ctx.strokeStyle=col;ctx.lineWidth=1;ctx.strokeRect(Math.round(x)+0.5,Math.round(y)+0.5,w,h)}
 
-for(var i=0;i<3;i++) state.obstacles.push({x:rand(980,1480),y:rand(150,410),speed:rand(0.65,1.25)});
+function resetObstacle(o,index){
+  o.type=index%3===2?'rock':'bird';
+  o.x=rand(1020,1400)+index*220;
+  o.y=o.type==='rock'?460:rand(150,390);
+  o.speed=o.type==='rock'?0.85:rand(1.1,1.6);
+}
+for(var i=0;i<3;i++){ var obstacle={}; resetObstacle(obstacle,i); state.obstacles.push(obstacle); }
 for(var i=0;i<6;i++) state.bonuses.push({x:rand(900,1420),y:rand(100,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
 
 function setY(clientY){
   var r=canvas.getBoundingClientRect();
   var screenY=(clientY-r.top)*(540/r.height);
-  var center=projectTrack(state.butterfly.x,270,track.height);
-  state.touchY=Math.max(track.minY,Math.min(track.maxY,270+(screenY-center.y)/track.acrossY));
+  state.touchY=Math.max(track.minY,Math.min(track.maxY,screenY));
 };
 window.addEventListener('mousemove',function(e){setY(e.clientY)});
 window.addEventListener('touchstart',function(e){setY(e.touches[0].clientY)},{passive:true});
@@ -70,7 +64,7 @@ function resetGame(){
   state.t=0; state.score=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
   state.butterfly.y=270; state.butterfly.vy=0; state.butterfly.shield=false; state.butterfly.agility=1;
   state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
-  for(var oi=0;oi<state.obstacles.length;oi++) resetEntity(state.obstacles[oi],980,1480,150,410);
+  for(var oi=0;oi<state.obstacles.length;oi++) resetObstacle(state.obstacles[oi],oi);
   for(var bi=0;bi<state.bonuses.length;bi++) resetEntity(state.bonuses[bi],900,1420,100,430);
   slowTimer=0; shieldTimer=0; agileTimer=0; bonusEl.textContent='AUCUN'; updateHud();
 };
@@ -137,71 +131,58 @@ function drawMountains(){
 };
 
 function drawSpringFlowers(){
-  for(var i=0;i<22;i++){
-    var gx=-1+i*1.04;
-    var gy=10.7+Math.sin(i*0.7)*0.30;
-    var p=iso(gx*44,gy*44,0);
-    var sway=Math.round(Math.sin(state.t*0.035+i)*1.4);
-    px(p.x+sway,p.y+5,2,10,'#2f824f');
-    px(p.x-3+sway,p.y+1,8,4,i%3===0?'#ff77a8':(i%3===1?'#ffe66d':'#b99cff'));
-    px(p.x-1+sway,p.y-1,4,8,'#fff1b6');
+  for(var i=0;i<32;i++){
+    var x=((i*37-state.t*0.45)%1184+1184)%1184-60;
+    var y=505+(i%3)*9;
+    px(x,y,2,12,'#2f824f');
+    px(x-3,y-3,8,5,i%3===0?'#ff77a8':(i%3===1?'#ffe66d':'#b99cff'));
+    px(x,y-2,2,3,'#fff1b6');
   }
 };
 
-function drawForestEdge(side){
-  for(var i=0;i<12;i++){
-    var gx=side==='left'?-2.2:19.4;
-    var gy=i*0.98+0.8;
-    var p=iso(gx*44,gy*44,0);
-    var h=22+(i%4)*5;
-    px(p.x-3,p.y-h+12,7,h,'#74454d');
-    drawDiamond(p.x,p.y-h-10,18,15,'#204c4a');
-    drawDiamond(p.x,p.y-h,15,13,'#2d6957');
-    drawDiamond(p.x,p.y-h+10,11,10,'#4f9a62');
-    px(p.x-18,p.y+8,36,4,'#1d3c42');
+function drawForestEdge(){
+  for(var i=0;i<14;i++){
+    var x=((i*87-state.t*0.12)%1218+1218)%1218-100;
+    var y=485, h=40+(i%4)*9;
+    px(x-3,y-h,7,h,'#74454d');
+    drawDiamond(x,y-h-22,24,28,'#204c4a');
+    drawDiamond(x,y-h-7,20,24,'#2d6957');
   }
 };
 
 function drawGround(){
-  var center=iso(8.5*44,5.5*44,0);
-  drawDiamond(center.x,center.y-24,670,332,'#1b3542');
-  drawDiamond(center.x,center.y-34,646,314,'#4f9a62');
-  drawDiamond(center.x,center.y-42,622,296,'#75c66b');
-
-  ctx.fillStyle='#376c58';ctx.beginPath();
-  ctx.moveTo(center.x-622,center.y+106);ctx.lineTo(center.x,center.y+254);ctx.lineTo(center.x,center.y+304);ctx.lineTo(center.x-622,center.y+156);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#2b594f';ctx.beginPath();
-  ctx.moveTo(center.x+622,center.y+106);ctx.lineTo(center.x,center.y+254);ctx.lineTo(center.x,center.y+304);ctx.lineTo(center.x+622,center.y+156);ctx.closePath();ctx.fill();
-
-  // Le sol et les entités partagent exactement les mêmes axes.
-  trackPolygon(-100,1220,track.minY-20,track.maxY+20,'#b87850');
-  trackPolygon(-100,1220,track.minY,track.maxY,'#e1b06e');
-  for(var i=0;i<12;i++){
-    trackPolygon(-70+i*115,-30+i*115,263,277,'#f7d98a');
-  }
-
-  drawDiamond(center.x+214,center.y+58,122,46,'#3c8db2');
-  drawDiamond(center.x+214,center.y+65,94,29,'#72c7d8');
-  px(center.x+178,center.y+81,72,3,'#d7f2d2');
-
-  function flowerPatch(dx,dy,col){
-    for(var i=0;i<7;i++){
-      px(center.x+dx+i*13,center.y+dy+(i%3)*5,5,5,col);
+  px(0,264,960,276,'#9acb83');
+  // Coteaux superposés, puis prairie au premier plan.
+  var colors=['#8aba75','#76aa67','#619556'];
+  for(var layer=0;layer<3;layer++){
+    ctx.fillStyle=colors[layer];ctx.beginPath();ctx.moveTo(0,540);
+    for(var x=0;x<=968;x+=8){
+      var y=325+layer*60+Math.sin((x+state.t*(0.04+layer*0.025))/160+layer)*17;
+      ctx.lineTo(x,y);
     }
+    ctx.lineTo(960,540);ctx.closePath();ctx.fill();
   }
-  flowerPatch(-346,128,'#ff77a8');
-  flowerPatch(-56,26,'#ffe66d');
-  flowerPatch(248,120,'#b99cff');
+  // Sentier de terre irrégulier, sans marquage de route.
+  ctx.fillStyle='#b49365';ctx.beginPath();
+  for(var x=0;x<=968;x+=8) ctx.lineTo(x,480+Math.sin((x+state.t*0.55)/130)*3);
+  for(var x=968;x>=0;x-=8) ctx.lineTo(x,500+Math.sin((x+state.t*0.55)/130+0.4)*4);
+  ctx.closePath();ctx.fill();
+  for(var i=0;i<55;i++){
+    var x=((i*43-state.t*0.55)%1200+1200)%1200-80;
+    var y=452+(i*17)%85;
+    if(y>479 && y<504){px(x,y,3+i%3,2,'#d4bc8c');continue;}
+    px(x,y,2,7,'#426e43');px(x-3,y+2,3,2,'#54884b');
+  }
 };
 
 function drawButterfly(b){
-  var ground=projectTrack(b.x,b.y,0);
+  var ground={x:b.x,y:487};
   drawDiamond(ground.x,ground.y-3,18,7,'#937044');
   var p=projectTrack(b.x,b.y,track.height);
   ctx.save();
   if(state.invulnerable>0 && Math.floor(state.invulnerable/8)%2===0) ctx.globalAlpha=0.35;
   ctx.translate(p.x,p.y);
-  ctx.rotate(Math.atan2(track.alongY,track.alongX)+Math.PI/2);
+  ctx.rotate(Math.PI/2);
   p={x:0,y:0};
   /* monarque pixel-art : contour épais, silhouette arcade */
   px(p.x-5,p.y-15,10,27,'#171b26');
@@ -217,13 +198,28 @@ function drawButterfly(b){
 };
 
 function drawObstacle(o){
-  var p=projectTrack(o.x,o.y,0);
-  px(p.x-16,p.y-40,32,42,'#1d3c42');
-  px(p.x-12,p.y-37,24,36,'#74454d');
-  px(p.x-8,p.y-33,8,28,'#9b614f');
-  drawDiamond(p.x,p.y-50,24,18,'#204c4a');
-  drawDiamond(p.x,p.y-42,19,14,'#4f9a62');
-  px(p.x-20,p.y+1,40,4,'#1d3c42');
+  var x=o.x, y=o.y;
+  if(o.type==='rock'){
+    // Base posée sur le bord du sentier ; seul le volume du rocher gêne le vol bas.
+    px(x-30,481,60,5,'#496744');
+    ctx.fillStyle='#59696b';ctx.beginPath();
+    ctx.moveTo(x-27,480);ctx.lineTo(x-22,455);ctx.lineTo(x-7,439);
+    ctx.lineTo(x+15,444);ctx.lineTo(x+28,465);ctx.lineTo(x+29,482);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#91a1a0';ctx.beginPath();ctx.moveTo(x-22,455);ctx.lineTo(x-7,439);ctx.lineTo(x+15,444);ctx.lineTo(x+3,460);ctx.closePath();ctx.fill();
+    px(x-19,473,13,4,'#8ca064');
+    return;
+  }
+  // Oiseau vu de profil, bec vers la gauche et ailes animées.
+  var flap=Math.sin(state.t*0.14+x*0.01)*12;
+  px(x-15,y-6,31,12,'#334858');px(x-24,y-9,13,13,'#334858');
+  px(x-30,y-4,7,3,'#d9ad64');px(x-21,y-7,2,2,'#fff1b6');
+  ctx.fillStyle='#506a7b';ctx.beginPath();ctx.moveTo(x-5,y);
+  ctx.lineTo(x+6,y-14-flap);ctx.lineTo(x+15,y-11-flap);ctx.lineTo(x+8,y+3);ctx.closePath();ctx.fill();
+  px(x+15,y-3,11,4,'#334858');
+};
+function obstacleTouches(o,b){
+  if(o.type==='rock') return Math.abs(o.x-b.x)<37 && b.y+12>441 && b.y-12<482;
+  return Math.abs(o.x-b.x)<32 && Math.abs(o.y-b.y)<24;
 };
 
 function drawBonus(b){
@@ -300,8 +296,8 @@ function update(){
   var speedMul=(slowTimer>0?0.45:0.7)*flowerSlow*Math.min(1.45,1+(state.level-1)*0.05);
   for(var oi=0;oi<state.obstacles.length;oi++){ var o=state.obstacles[oi];
     o.x -= o.speed*speedMul;
-    if(o.x<-90) resetEntity(o,980,1360,120,430);
-    if(Math.abs(o.x-b.x)<26 && Math.abs(o.y-b.y)<30) hitButterfly(o);
+    if(o.x<-90) resetObstacle(o,oi);
+    if(obstacleTouches(o,b)) hitButterfly(o);
   }
   for(var bi=0;bi<state.bonuses.length;bi++){ var bo=state.bonuses[bi];
     bo.x -= 0.8*flowerSlow;
@@ -334,8 +330,7 @@ function render(){
   drawSkyGarden();
   drawGround();
   drawMountains();
-  drawForestEdge('left');
-  drawForestEdge('right');
+  drawForestEdge();
   state.obstacles.slice().sort(function(a,b){return a.y-b.y;}).forEach(drawObstacle);
   state.bonuses.forEach(drawBonus);
   drawMegaFlower(state.megaFlower);

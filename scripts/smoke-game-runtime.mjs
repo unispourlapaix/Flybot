@@ -72,7 +72,23 @@ for (const lane of [70, 270, 470]) {
   sandbox.setY(point.y);
   if (Math.abs(sandbox.state.touchY - lane) > 0.00001) throw new Error('Commande hors du repère de la piste.');
 }
-const start = sandbox.projectTrack(0,270);
-const end = sandbox.projectTrack(100,270);
-if (Math.abs((end.y-start.y)/(end.x-start.x)-sandbox.track.alongY/sandbox.track.alongX)>0.00001) throw new Error('Axe de défilement incohérent.');
-console.log('OK: projection commune de la piste et commande souris inversée.');
+for (const y of [70,270,470]) {
+  const start = sandbox.projectTrack(0,y);
+  const end = sandbox.projectTrack(100,y);
+  if (end.y !== start.y || end.x-start.x !== 100) throw new Error('Défilement horizontal incorrect.');
+}
+sandbox.setY(-100);
+if (sandbox.state.touchY !== 70) throw new Error('Limite haute incorrecte.');
+sandbox.setY(700);
+if (sandbox.state.touchY !== 470) throw new Error('Limite basse incorrecte.');
+console.log('OK: vue horizontale, commande verticale et limites du vol.');
+
+const rock = {type:'rock',x:200,y:460};
+if (sandbox.obstacleTouches(rock,{x:200,y:400})) throw new Error('Le rocher touche un papillon au-dessus.');
+if (!sandbox.obstacleTouches(rock,{x:200,y:455})) throw new Error('Le rocher ne bloque pas le vol bas.');
+for (let i=0;i<3;i++) {
+  const o={}; sandbox.resetObstacle(o,i);
+  if (o.type==='rock' && o.y!==460) throw new Error('Rocher flottant.');
+  if (o.type==='bird' && (o.y<150 || o.y>390)) throw new Error('Oiseau hors du couloir de vol.');
+}
+console.log('OK: rochers au sol, passage au-dessus et oiseaux en altitude.');

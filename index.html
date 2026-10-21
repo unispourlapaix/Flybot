@@ -6,17 +6,17 @@
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>Flybot 3D Isométrique</title>
+    <title>Flybot — Vol horizontal</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%A6%8B%3C/text%3E%3C/svg%3E" />
     <style>
-      body { margin:0; background:#101a2b; font-family:monospace; overflow:hidden; }
+      body { min-height:100vh; display:flex; align-items:center; margin:0; background:#101a2b; font-family:monospace; overflow:hidden; }
       #ui { position:fixed; top:12px; left:12px; color:#fff6bd; background:#101a2be8; padding:8px 12px; border:3px solid #f7d354; box-shadow:4px 4px 0 #713f64; font-weight:700; letter-spacing:1px; z-index:10; text-shadow:2px 2px 0 #713f64; }
-      canvas { display:block; width:100vw; height:100vh; image-rendering:pixelated; touch-action:none; }
+      canvas { display:block; width:min(100vw,177.7778vh); height:auto; aspect-ratio:16/9; margin:auto; image-rendering:pixelated; touch-action:none; }
     </style>
   </head>
   <body>
-    <div id="ui">MODE ZEN • SCORE <span id="score">0</span> • NIVEAU <span id="level">1</span> • VIES <span id="lives">♥♥♥</span> • BONUS <span id="bonus">AUCUN</span> • FLEUR <span id="flower">100</span> <small id="version">v2026.10.21.1</small></div>
+    <div id="ui">MODE ZEN • SCORE <span id="score">0</span> • NIVEAU <span id="level">1</span> • VIES <span id="lives">♥♥♥</span> • BONUS <span id="bonus">AUCUN</span> • FLEUR <span id="flower">100</span> <small id="version">v2026.10.21.3</small></div>
     <canvas id="game" width="960" height="540"></canvas>
-    <script src="game.js?v=2026.10.21.1" defer></script>
+    <script src="game.js?v=2026.10.21.3" defer></script>
   </body>
 </html>
