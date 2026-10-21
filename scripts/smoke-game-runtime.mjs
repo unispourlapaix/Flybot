@@ -15,7 +15,7 @@ const canvas = {
   getBoundingClientRect: () => ({ top: 0, left: 0, width: 960, height: 540 }),
   getContext: () => context,
 };
-for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'tilt', 'control-status']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop });
+for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'tilt', 'control-status', 'sound']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop });
 elements.set('game', canvas);
 let frame;
 const sandbox = {
@@ -35,14 +35,14 @@ if (elements.get('lives').textContent !== '♥♥♥') throw new Error('Le HUD v
 for (const obstacle of sandbox.state.obstacles) obstacle.x = 5000;
 for (const bonus of sandbox.state.bonuses) bonus.x = 5000;
 sandbox.state.flightPoints = 1200;
-sandbox.state.score = 1200;
+sandbox.state.score = 0;
 frame();
 if (!sandbox.state.megaFlower) throw new Error('La fleur rare ne se déclenche pas au palier de 100 points.');
 sandbox.state.megaFlower.x = sandbox.state.butterfly.x;
 sandbox.state.megaFlower.y = sandbox.state.butterfly.y;
 for (let index = 0; index < 80; index++) frame();
 if (sandbox.state.megaFlower) throw new Error('Le butinage calme ne termine pas la collecte.');
-if (Number(elements.get('score').textContent) < 10000) throw new Error('La fleur rare ne crédite pas le bonus +10k.');
+if (Number(elements.get('score').textContent) !== 10000) throw new Error('La fleur rare ne crédite pas le bonus +10k.');
 frame();
 if (sandbox.state.megaFlower) throw new Error('Le bonus +10k déclenche une cascade de fleurs rares.');
 
@@ -109,3 +109,33 @@ if(sandbox.tilt.x<=0 || sandbox.tilt.y<=0) throw new Error('Inclinaison incorrec
 sandbox.stopTilt();
 if(sandbox.tilt.enabled) throw new Error('Désactivation incorrecte.');
 console.log('OK: vol libre, clavier diagonal et calibration des capteurs.');
+
+sandbox.resetGame();
+sandbox.state.obstacles.forEach(o=>o.x=5000);
+sandbox.state.bonuses.forEach(o=>o.x=5000);
+for(let i=0;i<30;i++) frame();
+if(sandbox.state.score!==0) throw new Error('Le vol seul donne encore des points.');
+const flower=sandbox.state.bonuses[0];
+flower.type='Fleur'; flower.x=sandbox.state.butterfly.x;flower.y=sandbox.state.butterfly.y;
+frame();
+if(sandbox.state.score!==100 || Number(elements.get('score').textContent)!==100) throw new Error('Butinage normal incorrect.');
+if(sandbox.state.fireworks.length<48) throw new Error('Feu d’artifice absent.');
+if(new Set(sandbox.state.fireworks.map(p=>p.color)).size<2) throw new Error('Explosion non multicolore.');
+frame();
+if(sandbox.state.score!==100) throw new Error('Fleur comptée deux fois.');
+flower.type='Soleil';flower.x=sandbox.state.butterfly.x;flower.y=sandbox.state.butterfly.y;
+frame();
+if(sandbox.state.score!==100) throw new Error('Un bonus non floral donne des points.');
+for(let i=0;i<80;i++) sandbox.updateFireworks();
+if(sandbox.state.fireworks.length) throw new Error('Particules jamais nettoyées.');
+sandbox.flowerFirework(200,200);sandbox.resetGame();
+if(sandbox.state.fireworks.length || sandbox.state.score) throw new Error('Reprise sans nettoyage.');
+console.log('OK: score uniquement au butinage, explosion multicolore et nettoyage.');
+
+let played=0;
+sandbox.window.Audio=function(src){this.src=src;this.play=()=>{played++;return Promise.resolve();};this.pause=()=>{};};
+sandbox.soundEnabled=false;sandbox.playSound('butinage');
+if(played) throw new Error('Son lancé sans activation.');
+sandbox.soundEnabled=true;sandbox.playSound('butinage');
+if(played!==1 || sandbox.soundPool.butinage.src!=='audio/butinage.wav') throw new Error('Lecture du son incorrecte.');
+console.log('OK: sons activés uniquement à la demande.');

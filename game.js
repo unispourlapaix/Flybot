@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.4';
+var BUILD_VERSION = '2026.10.21.6';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -15,8 +15,25 @@ ctx.setTransform(dpr,0,0,dpr,0,0);
 var state = {
   t:0, score:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
   butterfly:{x:200,y:270,vx:0,vy:0,shield:false,agility:1},
-  wind:0, obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
+  wind:0, fireworks:[], obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
 };
+
+// Lecture activée uniquement après une action volontaire du joueur.
+var soundEnabled=false, soundPool={}, soundButton=document.getElementById('sound');
+function playSound(name){
+  if(!soundEnabled || !window.Audio) return;
+  var clip=soundPool[name];
+  if(!clip){clip=new window.Audio('audio/'+name+'.wav');clip.volume=0.45;soundPool[name]=clip;}
+  clip.currentTime=0;
+  var playing=clip.play();if(playing && playing.catch) playing.catch(function(){});
+}
+soundButton.addEventListener('click',function(){
+  soundEnabled=!soundEnabled;
+  soundButton.textContent=soundEnabled?'Son : activé':'Son : coupé';
+  soundButton.setAttribute('aria-pressed',String(soundEnabled));
+  if(soundEnabled) playSound('envol');
+  else Object.keys(soundPool).forEach(function(key){soundPool[key].pause();});
+});
 
 function rand(a,b){ return Math.random()*(b-a)+a; }
 // Vue de côté : les coordonnées du jeu correspondent aux pixels du canvas.
@@ -99,7 +116,7 @@ tiltButton.addEventListener('click',async function(){
 canvas.addEventListener('click',function(){ if(state.gameOver) resetGame(); });
 
 function updateHud(){
-  scoreEl.textContent=Math.floor(state.score/12);
+  scoreEl.textContent=Math.floor(state.score);
   levelEl.textContent=state.level;
   livesEl.textContent=state.lives===3?'♥♥♥':(state.lives===2?'♥♥♡':(state.lives===1?'♥♡♡':'♡♡♡'));
   flowerEl.textContent=state.megaFlower?'BUTINER '+Math.floor(state.flowerProgress)+'%':Math.max(0,state.nextFlowerScore-Math.floor(state.flightPoints/12));
@@ -110,7 +127,7 @@ function resetEntity(entity,minX,maxX,minY,maxY){
 };
 
 function resetGame(){
-  state.t=0; state.score=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
+  state.t=0; state.fireworks=[]; state.score=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
   state.butterfly.x=200; state.butterfly.y=270; state.butterfly.vx=0; state.butterfly.vy=0; tilt.neutral=null; state.butterfly.shield=false; state.butterfly.agility=1;
   state.touchX=200; state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
   for(var oi=0;oi<state.obstacles.length;oi++) resetObstacle(state.obstacles[oi],oi);
@@ -121,6 +138,7 @@ function resetGame(){
 function hitButterfly(obstacle){
   if(state.invulnerable>0) return;
   if(state.butterfly.shield){ state.butterfly.shield=false; shieldTimer=0; state.message='BOUCLIER !'; state.messageTimer=95; obstacle.x=-120; return; }
+  playSound('choc-doux');
   state.lives--; state.invulnerable=150; state.message=state.lives>0?'OUPS !':'FIN DE VOL'; state.messageTimer=95; obstacle.x=-120;
   if(state.lives<=0) state.gameOver=true;
   updateHud();
@@ -296,6 +314,38 @@ function drawMegaFlower(f){
   px(p.x-5,p.y-8,10,10,'#ffe66d');
 };
 
+function flowerFirework(x,y){
+  var count=48+Math.floor(rand(0,25));
+  var palette=['#ff5f9e','#ffe66d','#6df7ff','#b99cff','#8cff97','#ff944d','#ffffff'];
+  for(var i=0;i<count;i++){
+    var angle=rand(0,Math.PI*2),speed=rand(1.2,5.2),life=rand(35,65);
+    state.fireworks.push({x:x,y:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      life:life,maxLife:life,size:Math.floor(rand(2,5)),color:palette[Math.floor(rand(0,palette.length))]});
+  }
+  // Limite les particules si plusieurs fleurs sont butinées à la suite.
+  if(state.fireworks.length>500) state.fireworks.splice(0,state.fireworks.length-500);
+}
+function updateFireworks(){
+  state.fireworks=state.fireworks.filter(function(p){
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.98;p.vy=p.vy*0.98+0.045;
+    return --p.life>0;
+  });
+}
+function drawFireworks(){
+  ctx.save();
+  state.fireworks.forEach(function(p){
+    ctx.globalAlpha=p.life/p.maxLife;
+    px(p.x,p.y,p.size,p.size,p.color);
+  });
+  ctx.restore();
+}
+function collectFlower(f,points){
+  state.score+=points;
+  playSound(points>=10000?'fleur-rare':'butinage');
+  flowerFirework(f.x,f.y);
+  state.message='+'+points+' !';state.messageTimer=70;
+}
+
 var slowTimer=0, shieldTimer=0, agileTimer=0;
 function applyBonus(type){
   bonusEl.textContent=type;
@@ -327,6 +377,7 @@ function drawScanlines(){
 };
 
 function update(){
+  updateFireworks();
   if(state.gameOver) return;
   state.t++;
   if(state.invulnerable>0) state.invulnerable--;
@@ -361,7 +412,7 @@ function update(){
   for(var bi=0;bi<state.bonuses.length;bi++){ var bo=state.bonuses[bi];
     bo.x -= 0.8*flowerSlow;
     if(bo.x<-80){ resetEntity(bo,980,1360,110,440); bo.type=['Fleur','Soleil','Abeille'][(Math.random()*3)|0]; }
-    if(Math.abs(bo.x-b.x)<25 && Math.abs(bo.y-b.y)<30){ applyBonus(bo.type); bo.x=-80; }
+    if(Math.abs(bo.x-b.x)<25 && Math.abs(bo.y-b.y)<30){ if(bo.type==='Fleur') collectFlower(bo,100); applyBonus(bo.type); bo.x=-80; }
   }
 
   var scoreNow=Math.floor(state.flightPoints/12);
@@ -373,13 +424,12 @@ function update(){
     if(Math.abs(state.megaFlower.x-b.x)<42 && Math.abs(state.megaFlower.y-b.y)<46){
       state.flowerProgress=Math.min(100,state.flowerProgress+1.4);
       b.vy*=0.88;
-      if(state.flowerProgress>=100){ state.score+=120000; bonusEl.textContent='FLEUR +10K'; state.message='+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
+      if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); bonusEl.textContent='FLEUR +10K'; state.message='+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
     } else {
       state.flowerProgress=Math.max(0,state.flowerProgress-0.18);
     }
     if(state.megaFlower && state.megaFlower.x<-90){ state.megaFlower=null; state.flowerProgress=0; state.message='FLEUR MANQUEE'; state.messageTimer=95; }
   }
-  state.score++;
   state.flightPoints++;
   updateHud();
 };
@@ -394,6 +444,7 @@ function render(){
   state.bonuses.forEach(drawBonus);
   drawMegaFlower(state.megaFlower);
   drawButterfly(state.butterfly);
+  drawFireworks();
   drawSpringFlowers();
   drawScanlines();
   drawGameplayOverlay();

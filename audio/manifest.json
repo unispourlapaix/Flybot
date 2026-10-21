@@ -1,0 +1,13 @@
+{
+  "videos": {
+    "Vole, vole, Esprit de paix.mp4": "vole-vole-esprit-de-paix.mp4",
+    "Soar, soar, Spirit of Peace.mp4": "soar-soar-spirit-of-peace.mp4",
+    "Je lève mes yeux vers les montagnes….mp4": "je-leve-mes-yeux-vers-les-montagnes.mp4"
+  },
+  "effects": [
+    "butinage.wav",
+    "fleur-rare.wav",
+    "choc-doux.wav",
+    "envol.wav"
+  ]
+}
