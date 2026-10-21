@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.12';
+var BUILD_VERSION = '2026.10.21.13';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -75,6 +75,7 @@ function edge(x,y,w,h,col){col = col || '#1f1f1f'; ctx.strokeStyle=col;ctx.lineW
 
 function resetObstacle(o,index){
   o.type=index%3===2?'rock':'bird';
+  o.called=false;
   o.x=rand(1020,1400)+index*220;
   o.y=o.type==='rock'?460:rand(150,390);
   o.speed=o.type==='rock'?0.85:rand(1.1,1.6);
@@ -326,6 +327,11 @@ function drawObstacle(o){
   ctx.lineTo(x+6,y-14-flap);ctx.lineTo(x+15,y-11-flap);ctx.lineTo(x+8,y+3);ctx.closePath();ctx.fill();
   px(x+15,y-3,11,4,'#334858');
 };
+function birdCall(o,b){
+  if(o.type==='bird' && !o.called && soundEnabled && Math.abs(o.x-b.x)<180 && Math.abs(o.y-b.y)<130){
+    o.called=true;playSound('oiseau-wrah');
+  }
+}
 function obstacleTouches(o,b){
   if(o.type==='rock') return Math.abs(o.x-b.x)<37 && b.y+12>441 && b.y-12<482;
   return Math.abs(o.x-b.x)<32 && Math.abs(o.y-b.y)<24;
@@ -394,6 +400,7 @@ function collectFlower(f,points){
 
 var slowTimer=0, shieldTimer=0, agileTimer=0;
 function applyBonus(type){
+  if(type==='Soleil' || type==='Abeille') playSound('bonus-pok');
   state.bonus=type;
   if(type==='Fleur'){agileTimer=280; state.butterfly.agility=1.7;}
   if(type==='Soleil'){slowTimer=280;}
@@ -455,6 +462,7 @@ function update(){
   for(var oi=0;oi<state.obstacles.length;oi++){ var o=state.obstacles[oi];
     o.x -= o.speed*speedMul;
     if(o.x<-90) resetObstacle(o,oi);
+    birdCall(o,b);
     if(obstacleTouches(o,b)) hitButterfly(o);
   }
   for(var bi=0;bi<state.bonuses.length;bi++){ var bo=state.bonuses[bi];

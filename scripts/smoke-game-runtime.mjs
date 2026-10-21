@@ -222,3 +222,18 @@ for(const name of sandbox.musicTracks) for(const ext of ['mp4','mp3']) {
   if(readFileSync(new URL('../audio/'+name+'.'+ext,import.meta.url)).length===0) throw new Error('Musique vide.');
 }
 console.log('OK: sélection musique, secours MP3, erreurs et boucle de playlist.');
+
+const calls=[];
+sandbox.playSound=name=>calls.push(name);
+sandbox.applyBonus('Soleil');sandbox.applyBonus('Abeille');sandbox.applyBonus('Fleur');
+if(calls.join(',')!=='bonus-pok,bonus-pok') throw new Error('Sons bonus incorrects.');
+const bird={type:'bird',x:300,y:270,called:false}, player={x:200,y:270};
+sandbox.soundEnabled=false;sandbox.birdCall(bird,player);
+if(bird.called) throw new Error('Cri consommé alors que le son est coupé.');
+sandbox.soundEnabled=true;sandbox.birdCall(bird,player);sandbox.birdCall(bird,player);
+if(calls.filter(x=>x==='oiseau-wrah').length!==1) throw new Error('Cri oiseau absent ou répété.');
+sandbox.resetObstacle(bird,0);
+if(bird.called) throw new Error('Cri oiseau non réinitialisé.');
+sandbox.birdCall({type:'rock',x:200,y:270},player);
+if(calls.filter(x=>x==='oiseau-wrah').length!==1) throw new Error('Un rocher crie.');
+console.log('OK: pok des bonus et cri unique au passage des oiseaux.');
