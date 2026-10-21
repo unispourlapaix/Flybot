@@ -12,10 +12,10 @@ const context = {
 };
 const canvas = {
   addEventListener: noop,
-  getBoundingClientRect: () => ({ top: 0, height: 540 }),
+  getBoundingClientRect: () => ({ top: 0, left: 0, width: 960, height: 540 }),
   getContext: () => context,
 };
-for (const id of ['score', 'bonus', 'lives', 'level', 'flower']) elements.set(id, { textContent: '' });
+for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'tilt', 'control-status']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop });
 elements.set('game', canvas);
 let frame;
 const sandbox = {
@@ -92,3 +92,20 @@ for (let i=0;i<3;i++) {
   if (o.type==='bird' && (o.y<150 || o.y>390)) throw new Error('Oiseau hors du couloir de vol.');
 }
 console.log('OK: rochers au sol, passage au-dessus et oiseaux en altitude.');
+
+sandbox.resetGame();
+sandbox.state.obstacles.forEach(o=>o.x=5000);
+sandbox.setPointer({clientX:700,clientY:180});
+for(let i=0;i<40;i++) frame();
+if(Math.abs(sandbox.state.butterfly.x-700)>5 || Math.abs(sandbox.state.butterfly.y-180)>5) throw new Error('Déplacement libre incorrect.');
+sandbox.keys.arrowleft=true; sandbox.keys.arrowdown=true;
+const before={...sandbox.state.butterfly}; frame();
+if(sandbox.state.butterfly.x>=before.x || sandbox.state.butterfly.y<=before.y) throw new Error('Clavier diagonal incorrect.');
+sandbox.keys={}; sandbox.tilt.enabled=true;
+sandbox.handleOrientation({beta:30,gamma:5});
+if(sandbox.tilt.x!==0 || sandbox.tilt.y!==0) throw new Error('Calibration incorrecte.');
+sandbox.handleOrientation({beta:40,gamma:15});
+if(sandbox.tilt.x<=0 || sandbox.tilt.y<=0) throw new Error('Inclinaison incorrecte.');
+sandbox.stopTilt();
+if(sandbox.tilt.enabled) throw new Error('Désactivation incorrecte.');
+console.log('OK: vol libre, clavier diagonal et calibration des capteurs.');

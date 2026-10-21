@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.3';
+var BUILD_VERSION = '2026.10.21.4';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -14,8 +14,8 @@ ctx.setTransform(dpr,0,0,dpr,0,0);
 
 var state = {
   t:0, score:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
-  butterfly:{x:200,y:270,vy:0,shield:false,agility:1},
-  wind:0, obstacles:[], bonuses:[], touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
+  butterfly:{x:200,y:270,vx:0,vy:0,shield:false,agility:1},
+  wind:0, obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
 };
 
 function rand(a,b){ return Math.random()*(b-a)+a; }
@@ -40,12 +40,61 @@ function setY(clientY){
   var screenY=(clientY-r.top)*(540/r.height);
   state.touchY=Math.max(track.minY,Math.min(track.maxY,screenY));
 };
-window.addEventListener('mousemove',function(e){setY(e.clientY)});
-window.addEventListener('touchstart',function(e){setY(e.touches[0].clientY)},{passive:true});
-window.addEventListener('touchmove',function(e){setY(e.touches[0].clientY)},{passive:true});
-
+var keys={}, tilt={enabled:false,neutral:null,x:0,y:0,angle:null};
+var tiltButton=document.getElementById('tilt');
+var controlStatus=document.getElementById('control-status');
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function setPointer(e){
+  if(tilt.enabled) return;
+  var r=canvas.getBoundingClientRect();
+  state.touchX=clamp((e.clientX-r.left)*960/r.width,35,925);
+  setY(e.clientY);
+}
+canvas.addEventListener('pointerdown',function(e){
+  if(canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+  setPointer(e);
+});
+canvas.addEventListener('pointermove',function(e){if(e.pointerType==='mouse' || e.buttons) setPointer(e);});
 window.addEventListener('keydown',function(e){
-  if((e.key===' ' || e.key==='Enter') && state.gameOver) resetGame();
+  var key=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(key)>=0) e.preventDefault();
+  keys[key]=true;
+  if((key===' ' || key==='enter') && state.gameOver) resetGame();
+});
+window.addEventListener('keyup',function(e){delete keys[e.key.toLowerCase()];});
+window.addEventListener('blur',function(){keys={};tilt.x=0;tilt.y=0;});
+function stopTilt(message){
+  tilt.enabled=false;tilt.neutral=null;tilt.x=0;tilt.y=0;
+  state.touchX=state.butterfly.x;state.touchY=state.butterfly.y;
+  tiltButton.textContent='Activer l’inclinaison';tiltButton.setAttribute('aria-pressed','false');
+  controlStatus.textContent=message || 'Souris, doigt ou flèches / ZQSD';
+}
+function handleOrientation(e){
+  if(!tilt.enabled || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
+  var angle=window.screen && window.screen.orientation?window.screen.orientation.angle:(window.orientation || 0);
+  var rad=angle*Math.PI/180;
+  var x=e.gamma*Math.cos(rad)+e.beta*Math.sin(rad);
+  var y=e.beta*Math.cos(rad)-e.gamma*Math.sin(rad);
+  if(!tilt.neutral || tilt.angle!==angle){tilt.neutral={x:x,y:y};tilt.angle=angle;}
+  function axis(v){return Math.abs(v)<2?0:clamp((v-Math.sign(v)*2)/20,-1,1);}
+  tilt.x=axis(x-tilt.neutral.x);tilt.y=axis(y-tilt.neutral.y);
+  controlStatus.textContent='Incline pour voler • position de départ calibrée';
+}
+window.addEventListener('deviceorientation',handleOrientation);
+tiltButton.addEventListener('click',async function(){
+  if(tilt.enabled){stopTilt();return;}
+  if(!window.isSecureContext){stopTilt('Inclinaison : ouvre le jeu en HTTPS ou localhost.');return;}
+  var sensor=window.DeviceOrientationEvent;
+  if(!sensor){stopTilt('Capteurs indisponibles : utilise le doigt ou les flèches.');return;}
+  try{
+    if(typeof sensor.requestPermission==='function' && await sensor.requestPermission()!=='granted'){
+      stopTilt('Accès aux capteurs refusé : le contrôle tactile reste disponible.');return;
+    }
+    tilt.enabled=true;tilt.neutral=null;tilt.x=0;tilt.y=0;
+    tiltButton.textContent='Désactiver l’inclinaison';tiltButton.setAttribute('aria-pressed','true');
+    controlStatus.textContent='Tiens le téléphone confortablement : calibration…';
+    window.setTimeout(function(){if(tilt.enabled && !tilt.neutral) stopTilt('Aucune donnée capteur : utilise le doigt ou les flèches.');},4000);
+  }catch(error){stopTilt('Capteurs indisponibles : le contrôle tactile reste disponible.');}
 });
 canvas.addEventListener('click',function(){ if(state.gameOver) resetGame(); });
 
@@ -62,8 +111,8 @@ function resetEntity(entity,minX,maxX,minY,maxY){
 
 function resetGame(){
   state.t=0; state.score=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
-  state.butterfly.y=270; state.butterfly.vy=0; state.butterfly.shield=false; state.butterfly.agility=1;
-  state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
+  state.butterfly.x=200; state.butterfly.y=270; state.butterfly.vx=0; state.butterfly.vy=0; tilt.neutral=null; state.butterfly.shield=false; state.butterfly.agility=1;
+  state.touchX=200; state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
   for(var oi=0;oi<state.obstacles.length;oi++) resetObstacle(state.obstacles[oi],oi);
   for(var bi=0;bi<state.bonuses.length;bi++) resetEntity(state.bonuses[bi],900,1420,100,430);
   slowTimer=0; shieldTimer=0; agileTimer=0; bonusEl.textContent='AUCUN'; updateHud();
@@ -285,9 +334,19 @@ function update(){
   state.level=1+Math.floor(Math.floor(state.flightPoints/12)/300);
   state.wind=Math.sin(state.t*0.006)*0.024;
   var b=state.butterfly;
-  b.vy += ((state.touchY-b.y)*0.006*b.agility)+state.wind;
-  b.vy *= 0.94;
-  b.y = Math.max(track.minY,Math.min(track.maxY,b.y+b.vy));
+  var dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.q||keys.a?1:0);
+  var dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.z||keys.w?1:0);
+  if(dx || dy || tilt.enabled){
+    var length=Math.max(1,Math.hypot(dx,dy));
+    b.vx=((dx?dx/length:tilt.enabled?tilt.x:0)*4.5)*b.agility;
+    b.vy=((dy?dy/length:tilt.enabled?tilt.y:0)*4.5)*b.agility;
+    state.touchX=b.x;state.touchY=b.y;
+  }else{
+    b.vx=(state.touchX-b.x)*0.12*b.agility;
+    b.vy=(state.touchY-b.y)*0.12*b.agility;
+  }
+  b.x=clamp(b.x+b.vx,35,925);
+  b.y=clamp(b.y+b.vy,track.minY,track.maxY);
   if(slowTimer>0) slowTimer--; else if(bonusEl.textContent==='Soleil') bonusEl.textContent='AUCUN';
   if(agileTimer>0) agileTimer--; else b.agility=1;
   if(shieldTimer>0) shieldTimer--; else b.shield=false;
