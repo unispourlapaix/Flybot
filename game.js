@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.5';
+var BUILD_VERSION = '2026.10.23.7';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -104,14 +104,32 @@ function setY(clientY){
   state.touchY=Math.max(track.minY,Math.min(track.maxY,screenY));
 };
 var keys={}, tilt={autoPending:false,enabled:false,neutral:null,x:0,y:0,angle:null};
+var tiltSensitivity=100;
+var sensitivitySlider=document.getElementById('tilt-sensitivity');
+var sensitivityValue=document.getElementById('tilt-sensitivity-value');
+function setTiltSensitivity(value,persist){
+  var number=Number(value);
+  tiltSensitivity=Number.isFinite(number) && number>=50 && number<=200?Math.round(number/10)*10:100;
+  sensitivitySlider.value=String(tiltSensitivity);
+  sensitivityValue.textContent=tiltSensitivity+' %';
+  sensitivitySlider.setAttribute('aria-valuetext',tiltSensitivity+' %');
+  if(persist){try{window.localStorage.setItem('flybot-tilt-sensitivity',String(tiltSensitivity));}catch(error){}}
+}
+try{setTiltSensitivity(window.localStorage.getItem('flybot-tilt-sensitivity'),false);}catch(error){setTiltSensitivity(100,false);}
+sensitivitySlider.addEventListener('input',function(e){setTiltSensitivity(e.target.value,true);});
 var tiltButton=document.getElementById('tilt');
 var controlStatus=document.getElementById('control-status');
 function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function setPointer(e){
   if(tilt.enabled) return;
   var r=canvas.getBoundingClientRect();
-  state.touchX=clamp((e.clientX-r.left)*960/r.width,35,925);
-  setY(e.clientY);
+  if(typeof portraitCanvas!=='undefined' && portraitCanvas){
+    state.touchX=clamp((e.clientY-r.top)*960/r.height,35,925);
+    state.touchY=clamp((r.left+r.width-e.clientX)*540/r.width,track.minY,track.maxY);
+  }else{
+    state.touchX=clamp((e.clientX-r.left)*960/r.width,35,925);
+    setY(e.clientY);
+  }
 }
 canvas.addEventListener('pointerdown',function(e){
   if(canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
@@ -150,8 +168,10 @@ function handleOrientation(e){
   var x=e.gamma*Math.cos(rad)+e.beta*Math.sin(rad);
   var y=e.beta*Math.cos(rad)-e.gamma*Math.sin(rad);
   if(!tilt.neutral || tilt.angle!==angle){tilt.neutral={x:x,y:y};tilt.angle=angle;}
-  function axis(v){return Math.abs(v)<2?0:clamp((v-Math.sign(v)*2)/20,-1,1);}
-  tilt.x=axis(x-tilt.neutral.x);tilt.y=axis(y-tilt.neutral.y);
+  function axis(v){return Math.abs(v)<2?0:clamp((v-Math.sign(v)*2)/20*(tiltSensitivity/100),-1,1);}
+  var tiltX=axis(x-tilt.neutral.x),tiltY=axis(y-tilt.neutral.y);
+  if(typeof portraitCanvas!=='undefined' && portraitCanvas){tilt.x=tiltY;tilt.y=-tiltX;}
+  else{tilt.x=tiltX;tilt.y=tiltY;}
   controlStatus.textContent=tr('Incline pour voler • position de départ calibrée');
 }
 window.addEventListener('deviceorientation',handleOrientation);

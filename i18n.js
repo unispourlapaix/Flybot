@@ -288,6 +288,14 @@ translations.es["robotLife"]="¡GRACIAS, ROBOTITO! +1 VIDA";
 translations.es["robotFull"]="¡CORAZONES LLENOS! EL ROBOT TE ESPERA";
 translations.ja["robotLife"]="小さなロボット、ありがとう！ライフ+1";
 translations.ja["robotFull"]="ライフは満タン！ロボットが待っているよ";
+translations.fr["tiltSensitivity"]="Sensibilité des capteurs";
+translations.fr["tiltSensitivityHelp"]="50 % : doux • 100 % : normal • 200 % : réactif";
+translations.en["tiltSensitivity"]="Sensor sensitivity";
+translations.en["tiltSensitivityHelp"]="50%: gentle • 100%: normal • 200%: responsive";
+translations.es["tiltSensitivity"]="Sensibilidad de los sensores";
+translations.es["tiltSensitivityHelp"]="50 %: suave • 100 %: normal • 200 %: sensible";
+translations.ja["tiltSensitivity"]="センサー感度";
+translations.ja["tiltSensitivityHelp"]="50 %：ゆっくり・100 %：標準・200 %：敏感";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function tr(key,values){

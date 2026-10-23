@@ -2,7 +2,7 @@ var fullscreenButton=document.getElementById('fullscreen');
 var settingsButton=document.getElementById('toggle-controls');
 var settingsPanel=document.getElementById('controls');
 var fullscreenStatus=document.getElementById('fullscreen-status');
-var immersive=false,fullscreenBusy=false;
+var immersive=false,fullscreenBusy=false,portraitCanvas=false;
 settingsPanel.hidden=true;
 function nativeFullscreen(){return document.fullscreenElement || document.webkitFullscreenElement;}
 function refreshMobileLanguage(){
@@ -15,7 +15,13 @@ function fitMobileCanvas(){
   var viewport=window.visualViewport;
   document.documentElement.style.setProperty('--app-height',(viewport?viewport.height:window.innerHeight)+'px');
   var stage=document.getElementById('game-stage');
-  var width=Math.min(stage.clientWidth,stage.clientHeight*16/9);
+  var wasPortrait=portraitCanvas;
+  portraitCanvas=immersive && stage.clientHeight>stage.clientWidth;
+  if(wasPortrait!==portraitCanvas && typeof tilt!=='undefined'){tilt.neutral=null;tilt.x=0;tilt.y=0;}
+  stage.classList.toggle('portrait-game',portraitCanvas);
+  var availableWidth=portraitCanvas?stage.clientHeight:stage.clientWidth;
+  var availableHeight=portraitCanvas?stage.clientWidth:stage.clientHeight;
+  var width=Math.min(availableWidth,availableHeight*16/9);
   if(width>0){canvas.style.width=width+'px';canvas.style.height=width*9/16+'px';}
 }
 function setImmersive(value){

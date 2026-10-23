@@ -15,7 +15,7 @@ const canvas = {
   getBoundingClientRect: () => ({ top: 0, left: 0, width: 960, height: 540 }),
   getContext: () => context,
 };
-for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'nectar', 'tilt', 'control-status', 'sound', 'share-score', 'share-status', 'share-fallback', 'language', 'harvest-progress', 'harvest-text']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop, focus: noop, select: noop });
+for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'nectar', 'tilt', 'control-status', 'sound', 'share-score', 'share-status', 'share-fallback', 'language', 'harvest-progress', 'harvest-text', 'tilt-sensitivity', 'tilt-sensitivity-value']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop, focus: noop, select: noop });
 elements.set('game', canvas);
 let frame;
 const sandbox = {
@@ -242,7 +242,7 @@ console.log('OK: pok des bonus et cri unique au passage des oiseaux.');
 
 const mobileEvents={};
 for(const id of ['fullscreen','toggle-controls','controls','fullscreen-status','game-stage']) elements.set(id,{setAttribute:noop,addEventListener:(name,fn)=>mobileEvents[id+':'+name]=fn});
-const stage=elements.get('game-stage');
+const stage=elements.get('game-stage');stage.classList={toggle:noop};
 sandbox.canvas.style={};
 sandbox.document.documentElement.style={setProperty:noop};
 sandbox.document.body={classList:{toggle:noop}};
@@ -363,3 +363,39 @@ if(sandbox.state.heartRobots.length) throw new Error('Robot hors écran non nett
 sandbox.drawHeartRobot({x:300,y:250,phase:0});sandbox.resetGame();
 if(sandbox.state.heartRobots.length) throw new Error('Robots non réinitialisés.');
 console.log('OK: robot cœur tous les 50 butinages, vie plafonnée et collecte unique.');
+
+sandbox.immersive=true;
+for(const [width,height] of [[390,844],[844,390],[320,568]]){
+ stage.clientWidth=width;stage.clientHeight=height;sandbox.fitMobileCanvas();
+ const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);
+ const visibleWidth=sandbox.portraitCanvas?ch:cw,visibleHeight=sandbox.portraitCanvas?cw:ch;
+ if(visibleWidth>width+.01 || visibleHeight>height+.01 || visibleWidth*visibleHeight/(width*height)<.8) throw new Error('Jeu trop petit en plein écran.');
+}
+sandbox.portraitCanvas=true;sandbox.tilt.enabled=false;
+const oldRect=sandbox.canvas.getBoundingClientRect;
+sandbox.canvas.getBoundingClientRect=()=>({left:10,top:20,width:300,height:533.333333});
+sandbox.setPointer({clientX:160,clientY:286.6666665});
+if(Math.abs(sandbox.state.touchX-480)>.001 || Math.abs(sandbox.state.touchY-270)>.001) throw new Error('Tactile portrait incorrect.');
+sandbox.canvas.getBoundingClientRect=oldRect;sandbox.immersive=false;
+console.log('OK: plein écran >80% en portrait/paysage et correspondance tactile après rotation.');
+
+sandbox.portraitCanvas=false;sandbox.tilt.enabled=true;sandbox.tilt.autoPending=false;sandbox.tilt.neutral=null;
+sandbox.handleOrientation({beta:30,gamma:0});
+sandbox.setTiltSensitivity(50,false);sandbox.handleOrientation({beta:40,gamma:10});
+const gentle=sandbox.tilt.x;
+sandbox.setTiltSensitivity(100,false);sandbox.handleOrientation({beta:40,gamma:10});
+const normal=sandbox.tilt.x;
+sandbox.setTiltSensitivity(200,false);sandbox.handleOrientation({beta:40,gamma:10});
+if(Math.abs(normal-gentle*2)>.0001 || Math.abs(sandbox.tilt.x-normal*2)>.0001) throw new Error('Sensibilité capteurs incorrecte.');
+sandbox.handleOrientation({beta:31,gamma:1});
+if(sandbox.tilt.x || sandbox.tilt.y) throw new Error('Zone neutre perdue.');
+sandbox.handleOrientation({beta:80,gamma:80});
+if(Math.abs(sandbox.tilt.x)>1 || Math.abs(sandbox.tilt.y)>1) throw new Error('Sensibilité dépasse les limites.');
+sandbox.setTiltSensitivity('incorrect',false);
+if(sandbox.tiltSensitivity!==100) throw new Error('Valeur invalide non gérée.');
+const settings=new Map();sandbox.window.localStorage={getItem:key=>settings.get(key),setItem:(key,value)=>settings.set(key,value)};
+sandbox.setTiltSensitivity(150,true);
+if(settings.get('flybot-tilt-sensitivity')!=='150') throw new Error('Sensibilité non sauvegardée.');
+sandbox.resetGame();
+if(sandbox.tiltSensitivity!==150) throw new Error('Sensibilité perdue à la reprise.');
+console.log('OK: sensibilité 50–200 %, zone neutre, limites et sauvegarde.');
