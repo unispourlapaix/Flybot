@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.8';
+var BUILD_VERSION = '2026.10.23.10';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -549,6 +549,44 @@ function applyBonus(type){
 };
 
 
+function drawGainSplash(){
+  var text=tr(state.message,{points:state.messagePoints || 0});
+  var gain=state.message.charAt(0)==='+' || ['shieldReward','robotLife','harvestCelebration'].indexOf(state.message)>=0;
+  var timer=state.messageTimer;
+  // Apparition souple, puis légère montée et disparition progressive.
+  var pop=1-Math.pow(1-clamp((100-timer)/14,0,1),3);
+  var scale=0.78+pop*0.22;
+  var y=278-Math.max(0,25-timer)*0.35;
+  ctx.save();ctx.translate(480,y);ctx.scale(scale,scale);
+  ctx.globalAlpha=Math.min(1,timer/18);
+  ctx.font='bold 22px sans-serif';
+  var measured=ctx.measureText?ctx.measureText(text).width:text.length*14;
+  var width=clamp(measured+84,180,800),height=74;
+  // Silhouette de bulle avec un contour éclaté façon BD.
+  function burst(dx,dy,color){
+    ctx.fillStyle=color;ctx.beginPath();
+    for(var i=0;i<32;i++){
+      var angle=i*Math.PI*2/32;
+      var tooth=i%2===0?1:0.91;
+      var x=Math.cos(angle)*width/2*tooth+dx;
+      var py=Math.sin(angle)*height/2*tooth+dy;
+      if(i===0) ctx.moveTo(x,py);else ctx.lineTo(x,py);
+    }
+    ctx.closePath();ctx.fill();
+  }
+  burst(3,6,'#17233b');burst(0,0,gain?'#ffe992':'#e6daff');
+  ctx.fillStyle='#17233b';ctx.beginPath();ctx.moveTo(14,30);ctx.lineTo(28,49);ctx.lineTo(37,27);ctx.closePath();ctx.fill();
+  ctx.fillStyle=gain?'#ffe992':'#e6daff';ctx.beginPath();ctx.moveTo(17,27);ctx.lineTo(27,42);ctx.lineTo(33,26);ctx.closePath();ctx.fill();
+  // Petites étincelles fixes, sans clignotement.
+  if(gain){
+    px(-width/2-17,-8,4,16,'#ff93c4');px(-width/2-23,-2,16,4,'#ff93c4');
+    px(width/2+13,-21,4,12,'#9cefe0');px(width/2+9,-17,12,4,'#9cefe0');
+  }
+  ctx.fillStyle='#3c2944';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(text,0,0,width-54);
+  ctx.restore();
+}
+
 function drawGameplayOverlay(){
   ctx.save();ctx.textAlign="center";
   if(state.megaFlower){
@@ -557,7 +595,7 @@ function drawGameplayOverlay(){
     ctx.fillStyle='#fff1b6';ctx.font='bold 14px monospace';ctx.fillText(tr('BUTINAGE CALME'),480,470,290);
   }
   if(state.message && state.messageTimer>0){
-    ctx.fillStyle='#fff1b6';ctx.font='bold 22px monospace';ctx.fillText(tr(state.message,{points:state.messagePoints || 0}),480,312,900);
+    drawGainSplash();
   }
   if(state.gameOver){
     ctx.fillStyle='rgba(16,26,43,0.78)';ctx.fillRect(0,0,960,540);
