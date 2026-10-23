@@ -51,6 +51,7 @@ if (sandbox.state.megaFlower) throw new Error('Le bonus +10k déclenche une casc
 
 sandbox.state.invulnerable = 0;
 const obstacle = sandbox.state.obstacles[0];
+obstacle.type='bird';obstacle.defeated=false;
 obstacle.x = sandbox.state.butterfly.x;
 obstacle.y = sandbox.state.butterfly.y;
 frame();
@@ -59,7 +60,8 @@ frame();
 if (sandbox.state.lives !== 2) throw new Error('Invulnérabilité post-collision absente.');
 for (let index = 0; index < 2; index++) {
   sandbox.state.invulnerable = 0;
-  obstacle.x = sandbox.state.butterfly.x;
+  obstacle.type='bird';obstacle.defeated=false;
+obstacle.x = sandbox.state.butterfly.x;
   obstacle.y = sandbox.state.butterfly.y;
   frame();
 }
@@ -287,3 +289,77 @@ if(requested || sandbox.tilt.autoPending) throw new Error('Permission demandée 
 sandbox.window.isSecureContext=false;sandbox.startDefaultTilt();
 if(sandbox.tilt.autoPending) throw new Error('Capteurs lancés sans contexte sécurisé.');
 console.log('OK: capteurs automatiques sur données valides, calibration et autorisation manuelle préservée.');
+
+for(const id of ['share-card-dialog','share-card-caption','share-card-send','share-card-download','share-card-image','share-card-status','share-card-close']) elements.set(id,{addEventListener:noop,focus:noop});
+elements.get('share-score').focus=noop;
+sandbox.document.createElement=()=>({getContext:()=>({drawImage:noop,fillRect:noop,fillText:noop}),toBlob:fn=>fn({type:'image/png'})});
+sandbox.Image=function(){Object.defineProperty(this,'src',{set:()=>this.onload()});};
+sandbox.URL={createObjectURL:()=> 'blob:score-card',revokeObjectURL:noop};
+sandbox.File=function(parts,name,options){this.name=name;this.type=options.type;};
+for(const id of ['game-stage','controls','mobile-toolbar']) { if(!elements.has(id)) elements.set(id,{});elements.get(id).setAttribute=noop;elements.get(id).removeAttribute=noop;}
+new vm.Script(readFileSync(new URL('../share-art.js',import.meta.url),'utf8')).runInContext(sandbox);
+sandbox.state.score=88800;sandbox.state.flowersCollected=888;
+await sandbox.prepareScoreCard();
+if(!sandbox.preparedShare.file || !sandbox.shareCardOpen || !sandbox.preparedShare.data.text.includes('88800') || !sandbox.preparedShare.data.text.includes('}i{')) throw new Error('Carte score incorrecte.');
+sandbox.state.score=0;
+if(!sandbox.scoreShareData().text.includes('88800')) throw new Error('Score de la carte non figé.');
+let imagePayload;
+sandbox.window.navigator={canShare:()=>true,share:async data=>{imagePayload=data;}};
+await sandbox.shareScore();
+if(imagePayload.files.length!==1 || imagePayload.files[0].type!=='image/png') throw new Error('Image non partagée.');
+sandbox.closeShareCard();
+if(sandbox.shareCardOpen || sandbox.preparedShare) throw new Error('Carte non fermée.');
+sandbox.Image=function(){Object.defineProperty(this,'src',{set:()=>this.onerror()});};
+await sandbox.prepareScoreCard();
+if(sandbox.preparedShare.file || !sandbox.preparedShare.data.text || elements.get('share-card-send').disabled) throw new Error('Repli texte après erreur image incorrect.');
+sandbox.closeShareCard();
+console.log('OK: carte illustrée, score figé, image partagée et secours texte.');
+
+for(const name of sandbox.shareArtNames){
+  const bytes=readFileSync(new URL('../images/share/butterfly-'+name+'.png',import.meta.url));
+  if(bytes.toString('hex',0,8)!=='89504e470d0a1a0a' || bytes.readUInt32BE(16)!==bytes.readUInt32BE(20)) throw new Error('Illustration absente ou non carrée.');
+}
+console.log('OK: cinq illustrations PNG carrées disponibles.');
+
+sandbox.resetGame();
+const shieldBird={type:'bird',x:200,y:270,defeated:false};
+sandbox.state.invulnerable=0;sandbox.state.butterfly.shield=true;
+sandbox.hitButterfly(shieldBird);
+if(sandbox.state.score!==250 || sandbox.state.lives!==3 || sandbox.state.butterfly.shield || !shieldBird.defeated) throw new Error('Bonus bouclier oiseau incorrect.');
+sandbox.state.invulnerable=0;sandbox.hitButterfly(shieldBird);
+if(sandbox.state.score!==250 || sandbox.state.lives!==3) throw new Error('Ennemi déjà éliminé compté deux fois.');
+for(let i=0;i<3;i++){
+ const f={x:200,y:455,kind:i};const previous=sandbox.state.score;
+ sandbox.collectMeadowFlower(f);
+ if(sandbox.state.butterfly.color!==sandbox.meadowKinds[i].color || sandbox.state.score!==previous+150 || f.x<1000) throw new Error('Fleur de prairie incorrecte.');
+}
+if(sandbox.state.flowersCollected!==3) throw new Error('Ennemis confondus avec les fleurs.');
+const expected=[[.001,'alien'],[.005,'ufo'],[.15,'hornet'],[.5,'bird'],[.9,'rock']];
+for(const [roll,type] of expected){
+ if(sandbox.enemyType(roll)!==type) throw new Error('Rareté incorrecte.');
+ sandbox.drawObstacle({type,x:500,y:270});
+}
+sandbox.resetGame();
+if(sandbox.state.butterfly.color || sandbox.state.meadowFlowers.length!==3) throw new Error('Reprise prairie incorrecte.');
+console.log('OK: bonus bouclier sans doublon, fleurs colorées, bonus et rareté des ennemis.');
+
+sandbox.resetGame();sandbox.state.flowersCollected=49;
+sandbox.collectFlower({x:200,y:270},100);
+if(sandbox.state.heartRobots.length!==1) throw new Error('Robot absent à 50 fleurs.');
+sandbox.collectFlower({x:200,y:270},100);
+if(sandbox.state.heartRobots.length!==1) throw new Error('Robot répété après le palier.');
+sandbox.state.flowersCollected=99;sandbox.collectFlower({x:200,y:270},100);
+if(sandbox.state.heartRobots.length!==2) throw new Error('Robot absent à 100 fleurs.');
+sandbox.state.heartRobots=[{x:200,y:270,phase:0,fullHint:false}];
+sandbox.state.butterfly.x=200;sandbox.state.butterfly.y=270;
+sandbox.updateHeartRobots();
+if(sandbox.state.lives!==3 || sandbox.state.heartRobots.length!==1) throw new Error('Cœur consommé à vies pleines.');
+sandbox.state.lives=2;sandbox.updateHeartRobots();
+if(sandbox.state.lives!==3 || sandbox.state.heartRobots.length!==0) throw new Error('Vie non rendue.');
+sandbox.updateHeartRobots();
+if(sandbox.state.lives!==3) throw new Error('Vie rendue deux fois.');
+sandbox.state.heartRobots=[{x:-61,y:270,phase:0}];sandbox.updateHeartRobots();
+if(sandbox.state.heartRobots.length) throw new Error('Robot hors écran non nettoyé.');
+sandbox.drawHeartRobot({x:300,y:250,phase:0});sandbox.resetGame();
+if(sandbox.state.heartRobots.length) throw new Error('Robots non réinitialisés.');
+console.log('OK: robot cœur tous les 50 butinages, vie plafonnée et collecte unique.');

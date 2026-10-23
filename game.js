@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.2';
+var BUILD_VERSION = '2026.10.23.5';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -19,13 +19,14 @@ ctx.setTransform(dpr,0,0,dpr,0,0);
 var state = {
   t:0, score:0, flowersCollected:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
   butterfly:{x:200,y:270,vx:0,vy:0,shield:false,agility:1},
-  wind:0, fireworks:[], obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
+  wind:0, heartRobots:[], meadowFlowers:[], fireworks:[], obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
 };
 
 var shareButton=document.getElementById('share-score');
 var shareStatus=document.getElementById('share-status');
 var shareFallback=document.getElementById('share-fallback');
 function scoreShareData(){
+  if(typeof preparedShare!=='undefined' && preparedShare) return preparedShare.data;
   return {title:tr('Mon vol sur Flybot'),
     text:tr('shareText',{score:Math.floor(state.score),flowers:state.flowersCollected}),
     url:'https://unispourlapaix.github.io/Flybot/'};
@@ -36,7 +37,12 @@ async function shareScore(){
   shareButton.disabled=true;
   try{
     if(window.navigator && typeof window.navigator.share==='function'){
-      try{await window.navigator.share(data);shareStatus.textContent=tr('Partage terminé.');return;}
+      try{
+        var payload=data;
+        if(typeof preparedShare!=='undefined' && preparedShare && preparedShare.file && window.navigator.canShare && window.navigator.canShare({files:[preparedShare.file]})){
+          payload={title:data.title,text:data.text,url:data.url,files:[preparedShare.file]};
+        }
+        await window.navigator.share(payload);shareStatus.textContent=tr('Partage terminé.');return;}
       catch(error){if(error.name==='AbortError'){shareStatus.textContent=tr('Partage annulé.');return;}}
     }
     if(window.navigator && window.navigator.clipboard){
@@ -46,7 +52,9 @@ async function shareScore(){
     shareStatus.textContent=tr('Copie ce texte pour partager ton score.');
   }finally{shareButton.disabled=false;}
 }
-shareButton.addEventListener('click',shareScore);
+shareButton.addEventListener('click',function(){
+  if(typeof prepareScoreCard==='function') prepareScoreCard();else shareScore();
+});
 
 // Lecture activée uniquement après une action volontaire du joueur.
 var soundEnabled=false, soundPool={}, soundButton=document.getElementById('sound');
@@ -73,14 +81,21 @@ function projectTrack(x,y,z){ return {x:x,y:y-(z || 0)}; }
 function px(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(Math.round(x),Math.round(y),w,h)}
 function edge(x,y,w,h,col){col = col || '#1f1f1f'; ctx.strokeStyle=col;ctx.lineWidth=1;ctx.strokeRect(Math.round(x)+0.5,Math.round(y)+0.5,w,h)}
 
-function resetObstacle(o,index){
-  o.type=index%3===2?'rock':'bird';
-  o.called=false;
+function enemyType(roll){
+  if(roll<0.002) return 'alien';
+  if(roll<0.012) return 'ufo';
+  if(roll<0.25) return 'hornet';
+  return roll<0.75?'bird':'rock';
+}
+function resetObstacle(o,index,initial){
+  o.type=initial?(index%3===2?'rock':'bird'):enemyType(Math.random());
+  o.called=false;o.defeated=false;
   o.x=rand(1020,1400)+index*220;
   o.y=o.type==='rock'?460:rand(150,390);
-  o.speed=o.type==='rock'?0.85:rand(1.1,1.6);
+  o.baseY=o.y;
+  o.speed=o.type==='rock'?0.85:(o.type==='hornet'?1.8:(o.type==='ufo'||o.type==='alien'?1.45:rand(1.1,1.6)));
 }
-for(var i=0;i<3;i++){ var obstacle={}; resetObstacle(obstacle,i); state.obstacles.push(obstacle); }
+for(var i=0;i<3;i++){ var obstacle={}; resetObstacle(obstacle,i,true); state.obstacles.push(obstacle); }
 for(var i=0;i<6;i++) state.bonuses.push({x:rand(900,1420),y:rand(100,430),type:['Fleur','Soleil','Abeille'][(Math.random()*3)|0]});
 
 function setY(clientY){
@@ -177,17 +192,27 @@ function resetEntity(entity,minX,maxX,minY,maxY){
 };
 
 function resetGame(){
-  state.t=0; state.fireworks=[]; state.score=0; state.flowersCollected=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
+  state.t=0; state.heartRobots=[]; state.fireworks=[]; state.score=0; state.flowersCollected=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
+  state.meadowFlowers=[];initMeadowFlowers();
+  state.butterfly.color=null;state.butterfly.accent=null;
   state.butterfly.x=200; state.butterfly.y=270; state.butterfly.vx=0; state.butterfly.vy=0; tilt.neutral=null; state.butterfly.shield=false; state.butterfly.agility=1;
   state.touchX=200; state.touchY=270; state.megaFlower=null; state.nextFlowerScore=100; state.flowerProgress=0; state.message='ENVOL !'; state.messageTimer=95;
-  for(var oi=0;oi<state.obstacles.length;oi++) resetObstacle(state.obstacles[oi],oi);
+  for(var oi=0;oi<state.obstacles.length;oi++) resetObstacle(state.obstacles[oi],oi,true);
   for(var bi=0;bi<state.bonuses.length;bi++) resetEntity(state.bonuses[bi],900,1420,100,430);
   slowTimer=0; shieldTimer=0; agileTimer=0; state.bonus='AUCUN'; updateHud();
 };
 
 function hitButterfly(obstacle){
   if(state.invulnerable>0) return;
-  if(state.butterfly.shield){ state.butterfly.shield=false; shieldTimer=0; state.message='BOUCLIER !'; state.messageTimer=95; obstacle.x=-120; return; }
+  if(obstacle.defeated) return;
+  if(state.butterfly.shield){
+    state.butterfly.shield=false;shieldTimer=0;state.invulnerable=45;
+    var rewards={bird:250,hornet:400,ufo:1000,alien:2500};
+    var reward=rewards[obstacle.type] || 0;
+    if(reward){state.score+=reward;flowerFirework(obstacle.x,obstacle.y);playSound('bonus-pok');}
+    state.message=reward?'shieldReward':'BOUCLIER !';state.messagePoints=reward;state.messageTimer=95;
+    obstacle.defeated=true;obstacle.x=-120;updateHud();return;
+  }
   playSound('choc-doux');
   state.lives--; state.invulnerable=150; state.message=state.lives>0?'OUPS !':'FIN DE VOL'; state.messageTimer=95; obstacle.x=-120;
   if(state.lives<=0) state.gameOver=true;
@@ -246,6 +271,71 @@ function drawMountains(){
   mountain(928,268,150,116,'#86b977','#4d765e','#2b4754','#f8f4d8');
   px(0,258,960,16,'#365f54');
 };
+
+var meadowKinds=[
+  {color:'#e989d5',accent:'#ffd0ee',bonus:'Abeille'},
+  {color:'#7abdf5',accent:'#c4edff',bonus:'Soleil'},
+  {color:'#b79bf4',accent:'#ebddff',bonus:'Fleur'}
+];
+function initMeadowFlowers(){
+  for(var i=0;i<3;i++) state.meadowFlowers.push({x:650+i*500,y:454+i*4,kind:i});
+}
+function drawMeadowFlower(f){
+  var c=meadowKinds[f.kind].color;
+  px(f.x-1,f.y+8,3,40,'#376d44');
+  drawDiamond(f.x-8,f.y+26,8,8,'#71b463');
+  for(var i=0;i<6;i++){
+    var angle=i*Math.PI/3;drawDiamond(f.x+Math.cos(angle)*12,f.y+Math.sin(angle)*10-7,8,14,c);
+  }
+  drawDiamond(f.x,f.y-4,7,10,'#fff1a1');
+}
+function collectMeadowFlower(f){
+  var kind=meadowKinds[f.kind];
+  collectFlower(f,150);state.butterfly.color=kind.color;state.butterfly.accent=kind.accent;
+  applyBonus(kind.bonus);f.x=rand(1200,1800);f.kind=(f.kind+1)%meadowKinds.length;
+}
+function updateMeadowFlowers(){
+  state.meadowFlowers.forEach(function(f){
+    f.x-=0.55;
+    if(f.x<-50) f.x=rand(1100,1700);
+    if(Math.abs(f.x-state.butterfly.x)<30 && Math.abs(f.y-state.butterfly.y)<28) collectMeadowFlower(f);
+  });
+}
+initMeadowFlowers();
+
+// Petit robot bienveillant : le cœur est son point de collecte, pas un obstacle.
+function heartPosition(robot){return {x:robot.x,y:robot.y+Math.sin(state.t*0.035+robot.phase)*5};}
+function drawHeartRobot(robot){
+  var p=heartPosition(robot),x=p.x,y=p.y;
+  px(x-18,y-31,36,23,'#533c35');px(x-15,y-29,30,18,'#ac7550');
+  px(x-13,y-27,8,5,'#d7a16b');px(x+7,y-23,6,8,'#784333');
+  px(x-10,y-22,5,5,'#bde8dc');px(x+5,y-22,5,5,'#bde8dc');px(x-5,y-13,10,2,'#3c383c');
+  px(x-1,y-40,3,9,'#8a7770');px(x-4,y-43,9,5,'#cf9462');
+  px(x-16,y-5,32,27,'#986340');px(x-12,y+1,24,15,'#b58054');
+  px(x-23,y-4,7,22,'#b48058');px(x+16,y-4,7,22,'#b48058');
+  px(x-15,y+22,10,9,'#76665f');px(x+5,y+22,10,9,'#76665f');
+  px(x-15,y+30,12,4,'#493d3b');px(x+3,y+30,12,4,'#493d3b');
+  // Cœur rouge tenu devant lui, avec reflet rose.
+  px(x-12,y-7,9,7,'#ff4e65');px(x+3,y-7,9,7,'#ff4e65');
+  px(x-15,y-1,30,8,'#e72f4f');px(x-11,y+7,22,5,'#e72f4f');
+  px(x-6,y+12,12,5,'#d72546');px(x-2,y+17,4,3,'#d72546');
+  px(x-9,y-4,5,4,'#ffc4cb');
+}
+function updateHeartRobots(){
+  if(state.gameOver) return;
+  state.heartRobots=state.heartRobots.filter(function(robot){
+    robot.x-=0.8;
+    var p=heartPosition(robot),b=state.butterfly;
+    if(Math.abs(p.x-b.x)<33 && Math.abs(p.y-b.y)<33){
+      if(state.lives<3){
+        state.lives++;state.message='robotLife';state.messageTimer=100;
+        playSound('envol');flowerFirework(p.x,p.y);updateHud();return false;
+      }
+      if(!robot.fullHint){state.message='robotFull';state.messageTimer=80;robot.fullHint=true;}
+    }
+    return robot.x>-60;
+  });
+}
 
 function drawSpringFlowers(){
   for(var i=0;i<32;i++){
@@ -306,9 +396,9 @@ function drawButterfly(b){
   // Les ailes se replient autour du corps sans modifier la collision.
   ctx.save();ctx.scale(wingOpening(state.t),1);
   px(p.x-28,p.y-13,22,18,'#171b26');px(p.x+7,p.y-13,22,18,'#171b26');
-  px(p.x-23,p.y-9,16,12,'#f58b3d');px(p.x+8,p.y-9,16,12,'#f58b3d');
+  px(p.x-23,p.y-9,16,12,b.color || '#f58b3d');px(p.x+8,p.y-9,16,12,b.color || '#f58b3d');
   px(p.x-22,p.y+5,15,13,'#171b26');px(p.x+8,p.y+5,15,13,'#171b26');
-  px(p.x-18,p.y+7,11,9,'#f7bd4f');px(p.x+8,p.y+7,11,9,'#f7bd4f');
+  px(p.x-18,p.y+7,11,9,b.accent || '#f7bd4f');px(p.x+8,p.y+7,11,9,b.accent || '#f7bd4f');
   px(p.x-24,p.y-10,3,3,'#fffbea');px(p.x+21,p.y-10,3,3,'#fffbea');
   px(p.x-19,p.y+10,3,3,'#fffbea');px(p.x+17,p.y+10,3,3,'#fffbea');
   ctx.restore();
@@ -330,6 +420,22 @@ function drawObstacle(o){
     px(x-19,473,13,4,'#8ca064');
     return;
   }
+  if(o.type==='hornet'){
+    var wing=Math.sin(state.t*0.7)*5;
+    px(x-8,y-17-wing,20,10,'#d4e9eb');px(x+2,y+7+wing,18,8,'#b6d4dd');
+    px(x-18,y-8,35,17,'#292933');px(x+4,y-8,7,17,'#ef952c');
+    px(x-25,y-6,11,12,'#c56525');px(x-23,y-5,3,3,'#ffdc75');
+    px(x+17,y-2,8,3,'#252532');px(x-4,y+10,2,8,'#e7ba65');return;
+  }
+  if(o.type==='ufo'){
+    drawDiamond(x,y-8,19,16,'#83e5dc');drawDiamond(x,y,36,15,'#8e9db7');
+    px(x-25,y+8,8,4,'#ff77a8');px(x-4,y+11,8,4,'#ffe66d');px(x+17,y+8,8,4,'#6df7ff');return;
+  }
+  if(o.type==='alien'){
+    drawDiamond(x,y-24,17,28,'#9add8c');px(x-13,y-13,8,5,'#17233b');px(x+5,y-13,8,5,'#17233b');
+    px(x-8,y+2,16,19,'#b99cff');px(x-19,y+5,11,4,'#9add8c');px(x+8,y+5,11,4,'#9add8c');
+    px(x-10,y+20,5,10,'#9add8c');px(x+5,y+20,5,10,'#9add8c');return;
+  }
   // Oiseau vu de profil, bec vers la gauche et ailes animées.
   var flap=Math.sin(state.t*0.14+x*0.01)*12;
   px(x-15,y-6,31,12,'#334858');px(x-24,y-9,13,13,'#334858');
@@ -345,7 +451,8 @@ function birdCall(o,b){
 }
 function obstacleTouches(o,b){
   if(o.type==='rock') return Math.abs(o.x-b.x)<37 && b.y+12>441 && b.y-12<482;
-  return Math.abs(o.x-b.x)<32 && Math.abs(o.y-b.y)<24;
+  if(o.defeated) return false;
+  return Math.abs(o.x-b.x)<(o.type==='hornet'?27:32) && Math.abs(o.y-b.y)<24;
 };
 
 function drawBonus(b){
@@ -401,6 +508,9 @@ function drawFireworks(){
 function collectFlower(f,points){
   state.score+=points;
   state.flowersCollected++;
+  if(state.flowersCollected%50===0){
+    state.heartRobots.push({x:1020,y:rand(180,390),phase:rand(0,Math.PI*2),fullHint:false});
+  }
   if(state.flowersCollected===FLOWER_GOAL){
     flowerFirework(300,180);flowerFirework(480,140);flowerFirework(660,180);
   }
@@ -427,7 +537,7 @@ function drawGameplayOverlay(){
     ctx.fillStyle='#fff1b6';ctx.font='bold 14px monospace';ctx.fillText(tr('BUTINAGE CALME'),480,470,290);
   }
   if(state.message && state.messageTimer>0){
-    ctx.fillStyle='#fff1b6';ctx.font='bold 22px monospace';ctx.fillText(tr(state.message),480,312);
+    ctx.fillStyle='#fff1b6';ctx.font='bold 22px monospace';ctx.fillText(tr(state.message,{points:state.messagePoints || 0}),480,312,900);
   }
   if(state.gameOver){
     ctx.fillStyle='rgba(16,26,43,0.78)';ctx.fillRect(0,0,960,540);
@@ -444,7 +554,7 @@ function drawScanlines(){
 
 function update(){
   updateFireworks();
-  if(state.gameOver) return;
+  if(state.gameOver || (typeof shareCardOpen!=='undefined' && shareCardOpen)) return;
   state.t++;
   if(state.invulnerable>0) state.invulnerable--;
   if(state.messageTimer>0) state.messageTimer--;
@@ -472,6 +582,7 @@ function update(){
   var speedMul=(slowTimer>0?0.45:0.7)*flowerSlow*Math.min(1.45,1+(state.level-1)*0.05);
   for(var oi=0;oi<state.obstacles.length;oi++){ var o=state.obstacles[oi];
     o.x -= o.speed*speedMul;
+    if(o.type==='hornet' || o.type==='ufo' || o.type==='alien') o.y=o.baseY+Math.sin(state.t*0.035+oi)*14;
     if(o.x<-90) resetObstacle(o,oi);
     birdCall(o,b);
     if(obstacleTouches(o,b)) hitButterfly(o);
@@ -482,6 +593,7 @@ function update(){
     if(Math.abs(bo.x-b.x)<25 && Math.abs(bo.y-b.y)<30){ if(bo.type==='Fleur') collectFlower(bo,100); applyBonus(bo.type); bo.x=-80; }
   }
 
+  updateMeadowFlowers();
   var scoreNow=Math.floor(state.flightPoints/12);
   if(!state.megaFlower && scoreNow>=state.nextFlowerScore){
     state.megaFlower={x:rand(930,1120),y:rand(170,380)}; state.flowerProgress=0; state.nextFlowerScore+=100; state.message='FLEUR RARE !'; state.messageTimer=95;
@@ -497,6 +609,7 @@ function update(){
     }
     if(state.megaFlower && state.megaFlower.x<-90){ state.megaFlower=null; state.flowerProgress=0; state.message='FLEUR MANQUEE'; state.messageTimer=95; }
   }
+  updateHeartRobots();
   state.flightPoints++;
   updateHud();
 };
@@ -510,9 +623,11 @@ function render(){
   state.obstacles.slice().sort(function(a,b){return a.y-b.y;}).forEach(drawObstacle);
   state.bonuses.forEach(drawBonus);
   drawMegaFlower(state.megaFlower);
+  state.heartRobots.forEach(drawHeartRobot);
   drawButterfly(state.butterfly);
   drawFireworks();
   drawSpringFlowers();
+  state.meadowFlowers.forEach(drawMeadowFlower);
   drawScanlines();
   drawGameplayOverlay();
 };

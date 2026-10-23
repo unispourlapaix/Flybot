@@ -34,3 +34,12 @@ Ce test vérifie les scripts JavaScript locaux et inline sans supprimer de fonct
 
 ## Déploiement
 GitHub Pages via `.github/workflows/deploy-pages.yml`.
+
+
+## Prairie et rencontres
+- Les fleurs au sol donnent 150 points et une couleur persistante jusqu’à la prochaine fleur : rose = bouclier, bleu = ralentissement, violet = agilité.
+- Le bouclier absorbe un impact et élimine l’ennemi. Récompenses : oiseau 250, frelon 400, OVNI 1 000, alien 2 500 points. Aucun point pour un rocher.
+- Lors du renouvellement d’un obstacle : alien 0,2 %, OVNI 1 %, frelon 23,8 %, oiseau 50 %, rocher 25 %. Les trois premiers obstacles restent des oiseaux et un rocher pour commencer doucement.
+- Les ennemis éliminés ne comptent pas parmi les 888 fleurs butinées.
+
+- Toutes les 50 fleurs butinées, un petit robot rouillé traverse le ciel avec un cœur rouge. Toucher son cœur rend une vie (maximum 3) ; si les vies sont pleines, il conserve le cœur pendant son passage.
