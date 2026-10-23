@@ -6,9 +6,9 @@ var immersive=false,fullscreenBusy=false,portraitCanvas=false;
 settingsPanel.hidden=true;
 function nativeFullscreen(){return document.fullscreenElement || document.webkitFullscreenElement;}
 function refreshMobileLanguage(){
-  fullscreenButton.textContent=tr(immersive?'fullscreenExit':'fullscreenEnter');
+  setIconButton(fullscreenButton,immersive?'↙':'⛶',tr(immersive?'fullscreenExit':'fullscreenEnter'));
   fullscreenButton.setAttribute('aria-pressed',String(immersive));
-  settingsButton.textContent=tr(settingsPanel.hidden?'settingsOpen':'settingsClose');
+  setIconButton(settingsButton,settingsPanel.hidden?'⚙':'✕',tr(settingsPanel.hidden?'settingsOpen':'settingsClose'));
   fullscreenStatus.textContent=immersive && !nativeFullscreen()?tr('fullscreenFallback'):'';
 }
 function fitMobileCanvas(){

@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.7';
+var BUILD_VERSION = '2026.10.23.8';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -104,18 +104,18 @@ function setY(clientY){
   state.touchY=Math.max(track.minY,Math.min(track.maxY,screenY));
 };
 var keys={}, tilt={autoPending:false,enabled:false,neutral:null,x:0,y:0,angle:null};
-var tiltSensitivity=100;
+var tiltSensitivity=130;
 var sensitivitySlider=document.getElementById('tilt-sensitivity');
 var sensitivityValue=document.getElementById('tilt-sensitivity-value');
 function setTiltSensitivity(value,persist){
   var number=Number(value);
-  tiltSensitivity=Number.isFinite(number) && number>=50 && number<=200?Math.round(number/10)*10:100;
+  tiltSensitivity=Number.isFinite(number) && number>=50 && number<=200?Math.round(number/10)*10:130;
   sensitivitySlider.value=String(tiltSensitivity);
   sensitivityValue.textContent=tiltSensitivity+' %';
   sensitivitySlider.setAttribute('aria-valuetext',tiltSensitivity+' %');
   if(persist){try{window.localStorage.setItem('flybot-tilt-sensitivity',String(tiltSensitivity));}catch(error){}}
 }
-try{setTiltSensitivity(window.localStorage.getItem('flybot-tilt-sensitivity'),false);}catch(error){setTiltSensitivity(100,false);}
+try{setTiltSensitivity(window.localStorage.getItem('flybot-tilt-sensitivity'),false);}catch(error){setTiltSensitivity(130,false);}
 sensitivitySlider.addEventListener('input',function(e){setTiltSensitivity(e.target.value,true);});
 var tiltButton=document.getElementById('tilt');
 var controlStatus=document.getElementById('control-status');
@@ -149,7 +149,7 @@ window.addEventListener('blur',function(){keys={};tilt.x=0;tilt.y=0;});
 function stopTilt(message){
   tilt.autoPending=false;tilt.enabled=false;tilt.neutral=null;tilt.x=0;tilt.y=0;
   state.touchX=state.butterfly.x;state.touchY=state.butterfly.y;
-  tiltButton.textContent=tr('Activer l’inclinaison');tiltButton.setAttribute('aria-pressed','false');
+  setIconButton(tiltButton,'▣',tr('Activer l’inclinaison'));tiltButton.setAttribute('aria-pressed','false');
   controlStatus.textContent=message || tr('Souris, doigt ou flèches / ZQSD');
 }
 function startDefaultTilt(){
@@ -160,7 +160,7 @@ function handleOrientation(e){
   if(!Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
   if(tilt.autoPending){
     tilt.autoPending=false;tilt.enabled=true;tilt.neutral=null;tilt.x=0;tilt.y=0;
-    tiltButton.textContent=tr('Désactiver l’inclinaison');tiltButton.setAttribute('aria-pressed','true');
+    setIconButton(tiltButton,'▣',tr('Désactiver l’inclinaison'));tiltButton.setAttribute('aria-pressed','true');
   }
   if(!tilt.enabled) return;
   var angle=window.screen && window.screen.orientation?window.screen.orientation.angle:(window.orientation || 0);
@@ -186,7 +186,7 @@ tiltButton.addEventListener('click',async function(){
       stopTilt(tr('Accès aux capteurs refusé : le contrôle tactile reste disponible.'));return;
     }
     tilt.enabled=true;tilt.neutral=null;tilt.x=0;tilt.y=0;
-    tiltButton.textContent=tr('Désactiver l’inclinaison');tiltButton.setAttribute('aria-pressed','true');
+    setIconButton(tiltButton,'▣',tr('Désactiver l’inclinaison'));tiltButton.setAttribute('aria-pressed','true');
     controlStatus.textContent=tr('Tiens le téléphone confortablement : calibration…');
     window.setTimeout(function(){if(tilt.enabled && !tilt.neutral) stopTilt(tr('Aucune donnée capteur : utilise le doigt ou les flèches.'));},4000);
   }catch(error){stopTilt(tr('Capteurs indisponibles : utilise le doigt ou les flèches.'));}

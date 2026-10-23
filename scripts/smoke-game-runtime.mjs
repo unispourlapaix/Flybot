@@ -392,10 +392,16 @@ if(sandbox.tilt.x || sandbox.tilt.y) throw new Error('Zone neutre perdue.');
 sandbox.handleOrientation({beta:80,gamma:80});
 if(Math.abs(sandbox.tilt.x)>1 || Math.abs(sandbox.tilt.y)>1) throw new Error('Sensibilité dépasse les limites.');
 sandbox.setTiltSensitivity('incorrect',false);
-if(sandbox.tiltSensitivity!==100) throw new Error('Valeur invalide non gérée.');
+if(sandbox.tiltSensitivity!==130) throw new Error('Valeur invalide non gérée.');
 const settings=new Map();sandbox.window.localStorage={getItem:key=>settings.get(key),setItem:(key,value)=>settings.set(key,value)};
 sandbox.setTiltSensitivity(150,true);
 if(settings.get('flybot-tilt-sensitivity')!=='150') throw new Error('Sensibilité non sauvegardée.');
 sandbox.resetGame();
 if(sandbox.tiltSensitivity!==150) throw new Error('Sensibilité perdue à la reprise.');
 console.log('OK: sensibilité 50–200 %, zone neutre, limites et sauvegarde.');
+
+sandbox.setTiltSensitivity(null,false);
+if(sandbox.tiltSensitivity!==130 || elements.get('tilt-sensitivity').value!=='130') throw new Error('Défaut 130 % incorrect.');
+sandbox.refreshMobileLanguage();
+if(elements.get('fullscreen').textContent!=='⛶' || elements.get('toggle-controls').textContent.length>2) throw new Error('Commandes non iconifiées.');
+console.log('OK: défaut 130 % et commandes en icônes.');

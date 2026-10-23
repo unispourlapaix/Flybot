@@ -298,6 +298,9 @@ translations.ja["tiltSensitivity"]="センサー感度";
 translations.ja["tiltSensitivityHelp"]="50 %：ゆっくり・100 %：標準・200 %：敏感";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
+function setIconButton(button,icon,label){
+  button.textContent=icon;button.setAttribute('aria-label',label);button.setAttribute('title',label);
+}
 function tr(key,values){
   var text=translations[language][key] || key;
   if(values) Object.keys(values).forEach(function(k){text=text.split('{'+k+'}').join(String(values[k]));});
@@ -312,7 +315,7 @@ function setLanguage(value){
   document.getElementById('language').value=language;
   document.getElementById('share-fallback').setAttribute('aria-label',tr('Score à copier'));
   soundButton.textContent=tr(soundEnabled?'Son : activé':'Son : coupé');
-  tiltButton.textContent=tr(tilt.enabled?'Désactiver l’inclinaison':'Activer l’inclinaison');
+  setIconButton(tiltButton,'▣',tr(tilt.enabled?'Désactiver l’inclinaison':'Activer l’inclinaison'));
   controlStatus.textContent=tr(tilt.enabled?'Tiens le téléphone confortablement : calibration…':'Souris, doigt ou flèches / ZQSD');
   if(tilt.enabled) tilt.neutral=null;
   shareStatus.textContent='';shareFallback.hidden=true;
