@@ -270,3 +270,20 @@ if(sandbox.immersive || sandbox.document.fullscreenElement) throw new Error('Sor
 mobileEvents['toggle-controls:click']();
 if(elements.get('controls').hidden) throw new Error('Réglages inaccessibles.');
 console.log('OK: portrait/paysage, plein écran natif, refus, repli immersif et réglages.');
+
+sandbox.stopTilt();
+sandbox.window.isSecureContext=true;sandbox.window.DeviceOrientationEvent=function(){};
+sandbox.startDefaultTilt();
+if(!sandbox.tilt.autoPending || sandbox.tilt.enabled) throw new Error('Attente des capteurs incorrecte.');
+sandbox.handleOrientation({beta:null,gamma:null});
+if(sandbox.tilt.enabled) throw new Error('Capteurs activés sans données.');
+sandbox.handleOrientation({beta:25,gamma:5});
+if(!sandbox.tilt.enabled || sandbox.tilt.x!==0 || sandbox.tilt.y!==0) throw new Error('Activation automatique non calibrée.');
+sandbox.stopTilt();sandbox.handleOrientation({beta:30,gamma:10});
+if(sandbox.tilt.enabled) throw new Error('Désactivation manuelle ignorée.');
+let requested=false;sandbox.window.DeviceOrientationEvent.requestPermission=()=>{requested=true;};
+sandbox.startDefaultTilt();
+if(requested || sandbox.tilt.autoPending) throw new Error('Permission demandée hors interaction.');
+sandbox.window.isSecureContext=false;sandbox.startDefaultTilt();
+if(sandbox.tilt.autoPending) throw new Error('Capteurs lancés sans contexte sécurisé.');
+console.log('OK: capteurs automatiques sur données valides, calibration et autorisation manuelle préservée.');

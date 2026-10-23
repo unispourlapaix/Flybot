@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.1';
+var BUILD_VERSION = '2026.10.23.2';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -88,7 +88,7 @@ function setY(clientY){
   var screenY=(clientY-r.top)*(540/r.height);
   state.touchY=Math.max(track.minY,Math.min(track.maxY,screenY));
 };
-var keys={}, tilt={enabled:false,neutral:null,x:0,y:0,angle:null};
+var keys={}, tilt={autoPending:false,enabled:false,neutral:null,x:0,y:0,angle:null};
 var tiltButton=document.getElementById('tilt');
 var controlStatus=document.getElementById('control-status');
 function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
@@ -114,13 +114,22 @@ window.addEventListener('keydown',function(e){
 window.addEventListener('keyup',function(e){delete keys[e.key.toLowerCase()];});
 window.addEventListener('blur',function(){keys={};tilt.x=0;tilt.y=0;});
 function stopTilt(message){
-  tilt.enabled=false;tilt.neutral=null;tilt.x=0;tilt.y=0;
+  tilt.autoPending=false;tilt.enabled=false;tilt.neutral=null;tilt.x=0;tilt.y=0;
   state.touchX=state.butterfly.x;state.touchY=state.butterfly.y;
   tiltButton.textContent=tr('Activer l’inclinaison');tiltButton.setAttribute('aria-pressed','false');
   controlStatus.textContent=message || tr('Souris, doigt ou flèches / ZQSD');
 }
+function startDefaultTilt(){
+  var sensor=window.DeviceOrientationEvent;
+  tilt.autoPending=!!(window.isSecureContext && sensor && typeof sensor.requestPermission!=='function');
+}
 function handleOrientation(e){
-  if(!tilt.enabled || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
+  if(!Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
+  if(tilt.autoPending){
+    tilt.autoPending=false;tilt.enabled=true;tilt.neutral=null;tilt.x=0;tilt.y=0;
+    tiltButton.textContent=tr('Désactiver l’inclinaison');tiltButton.setAttribute('aria-pressed','true');
+  }
+  if(!tilt.enabled) return;
   var angle=window.screen && window.screen.orientation?window.screen.orientation.angle:(window.orientation || 0);
   var rad=angle*Math.PI/180;
   var x=e.gamma*Math.cos(rad)+e.beta*Math.sin(rad);
@@ -132,6 +141,7 @@ function handleOrientation(e){
 }
 window.addEventListener('deviceorientation',handleOrientation);
 tiltButton.addEventListener('click',async function(){
+  tilt.autoPending=false;
   if(tilt.enabled){stopTilt();return;}
   if(!window.isSecureContext){stopTilt(tr('Inclinaison : ouvre le jeu en HTTPS ou localhost.'));return;}
   var sensor=window.DeviceOrientationEvent;
@@ -144,7 +154,7 @@ tiltButton.addEventListener('click',async function(){
     tiltButton.textContent=tr('Désactiver l’inclinaison');tiltButton.setAttribute('aria-pressed','true');
     controlStatus.textContent=tr('Tiens le téléphone confortablement : calibration…');
     window.setTimeout(function(){if(tilt.enabled && !tilt.neutral) stopTilt(tr('Aucune donnée capteur : utilise le doigt ou les flèches.'));},4000);
-  }catch(error){stopTilt('Capteurs indisponibles : le contrôle tactile reste disponible.');}
+  }catch(error){stopTilt(tr('Capteurs indisponibles : utilise le doigt ou les flèches.'));}
 });
 canvas.addEventListener('click',function(){ if(state.gameOver) resetGame(); });
 
@@ -514,4 +524,5 @@ function loop(){
 };
 document.getElementById('language').addEventListener('change',function(e){setLanguage(e.target.value);});
 setLanguage(language);
+startDefaultTilt();
 loop();
