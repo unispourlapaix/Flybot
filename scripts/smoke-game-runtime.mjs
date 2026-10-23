@@ -237,3 +237,36 @@ if(bird.called) throw new Error('Cri oiseau non réinitialisé.');
 sandbox.birdCall({type:'rock',x:200,y:270},player);
 if(calls.filter(x=>x==='oiseau-wrah').length!==1) throw new Error('Un rocher crie.');
 console.log('OK: pok des bonus et cri unique au passage des oiseaux.');
+
+const mobileEvents={};
+for(const id of ['fullscreen','toggle-controls','controls','fullscreen-status','game-stage']) elements.set(id,{setAttribute:noop,addEventListener:(name,fn)=>mobileEvents[id+':'+name]=fn});
+const stage=elements.get('game-stage');
+sandbox.canvas.style={};
+sandbox.document.documentElement.style={setProperty:noop};
+sandbox.document.body={classList:{toggle:noop}};
+sandbox.document.addEventListener=noop;
+sandbox.window.requestAnimationFrame=fn=>fn();
+sandbox.window.innerHeight=844;
+new vm.Script(readFileSync(new URL('../mobile.js',import.meta.url),'utf8')).runInContext(sandbox);
+for(const [width,height] of [[390,600],[844,240],[320,300]]) {
+  stage.clientWidth=width;stage.clientHeight=height;sandbox.fitMobileCanvas();
+  const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);
+  if(cw>width+.01 || ch>height+.01 || Math.abs(cw/ch-16/9)>.001) throw new Error('Canvas mobile déformé ou débordant.');
+}
+await sandbox.toggleFullscreen();
+if(!sandbox.immersive || !elements.get('controls').hidden) throw new Error('Repli immersif incorrect.');
+await sandbox.toggleFullscreen();
+if(sandbox.immersive) throw new Error('Sortie immersive impossible.');
+sandbox.document.documentElement.requestFullscreen=async()=>{throw new Error('Refus navigateur');};
+await sandbox.toggleFullscreen();
+if(!sandbox.immersive) throw new Error('Refus plein écran sans repli.');
+await sandbox.toggleFullscreen();
+sandbox.document.documentElement.requestFullscreen=async()=>{sandbox.document.fullscreenElement=sandbox.document.documentElement;};
+sandbox.document.exitFullscreen=async()=>{sandbox.document.fullscreenElement=null;};
+await sandbox.toggleFullscreen();
+if(!sandbox.immersive || !sandbox.document.fullscreenElement) throw new Error('Plein écran natif incorrect.');
+await sandbox.toggleFullscreen();
+if(sandbox.immersive || sandbox.document.fullscreenElement) throw new Error('Sortie native incorrecte.');
+mobileEvents['toggle-controls:click']();
+if(elements.get('controls').hidden) throw new Error('Réglages inaccessibles.');
+console.log('OK: portrait/paysage, plein écran natif, refus, repli immersif et réglages.');

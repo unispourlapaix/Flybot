@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.21.13';
+var BUILD_VERSION = '2026.10.23.1';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -102,7 +102,8 @@ canvas.addEventListener('pointerdown',function(e){
   if(canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
   setPointer(e);
 });
-canvas.addEventListener('pointermove',function(e){if(e.pointerType==='mouse' || e.buttons) setPointer(e);});
+canvas.addEventListener('pointermove',function(e){if(e.pointerType==='mouse' || e.buttons || e.pressure>0) setPointer(e);});
+canvas.addEventListener('pointercancel',function(){state.touchX=state.butterfly.x;state.touchY=state.butterfly.y;});
 window.addEventListener('keydown',function(e){
   if(e.target && /^(SELECT|INPUT|TEXTAREA|BUTTON|AUDIO)$/.test(e.target.tagName)) return;
   var key=e.key.toLowerCase();

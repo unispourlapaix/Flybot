@@ -224,6 +224,26 @@ translations.ja["musicPlayer"]="音楽プレーヤー";
 translations.ja["musicOpen"]="曲を開く";
 translations.ja["musicPlayHint"]="再生ボタンを押すと音楽が流れます。";
 translations.ja["musicError"]="再生できません。「曲を開く」をお試しください。";
+translations.fr["fullscreenEnter"]="Plein écran";
+translations.fr["fullscreenExit"]="Quitter le plein écran";
+translations.fr["settingsOpen"]="Réglages";
+translations.fr["settingsClose"]="Fermer les réglages";
+translations.fr["fullscreenFallback"]="Mode immersif : la barre du navigateur peut rester visible.";
+translations.en["fullscreenEnter"]="Full screen";
+translations.en["fullscreenExit"]="Exit full screen";
+translations.en["settingsOpen"]="Settings";
+translations.en["settingsClose"]="Close settings";
+translations.en["fullscreenFallback"]="Immersive mode: the browser bar may remain visible.";
+translations.es["fullscreenEnter"]="Pantalla completa";
+translations.es["fullscreenExit"]="Salir de pantalla completa";
+translations.es["settingsOpen"]="Ajustes";
+translations.es["settingsClose"]="Cerrar ajustes";
+translations.es["fullscreenFallback"]="Modo inmersivo: la barra del navegador puede seguir visible.";
+translations.ja["fullscreenEnter"]="全画面表示";
+translations.ja["fullscreenExit"]="全画面を終了";
+translations.ja["settingsOpen"]="設定";
+translations.ja["settingsClose"]="設定を閉じる";
+translations.ja["fullscreenFallback"]="没入モード：ブラウザーのバーが表示される場合があります。";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function tr(key,values){
@@ -245,5 +265,6 @@ function setLanguage(value){
   if(tilt.enabled) tilt.neutral=null;
   shareStatus.textContent='';shareFallback.hidden=true;
   if(typeof refreshMusicLanguage==='function') refreshMusicLanguage();
+  if(typeof refreshMobileLanguage==='function') refreshMobileLanguage();
   updateHud();
 }
