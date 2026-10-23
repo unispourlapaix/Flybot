@@ -41,9 +41,10 @@ frame();
 if (!sandbox.state.megaFlower) throw new Error('La fleur rare ne se déclenche pas au palier de 100 points.');
 sandbox.state.megaFlower.x = sandbox.state.butterfly.x;
 sandbox.state.megaFlower.y = sandbox.state.butterfly.y;
-for (let index = 0; index < 80; index++) frame();
-if (!sandbox.state.megaFlower || sandbox.state.flowerProgress<74 || sandbox.state.flowerProgress>75) throw new Error('Le temps de butinage n’a pas augmenté de 50 %.');
-for (let index = 0; index < 28; index++) frame();
+for (let index = 0; index < 160; index++) { sandbox.state.touchX=sandbox.state.megaFlower.x; frame(); }
+if (!sandbox.state.megaFlower || sandbox.state.flowerProgress<74 || sandbox.state.flowerProgress>75) throw new Error('Le temps de butinage n’a pas été doublé.');
+for (let index = 0; index < 55; index++) { if(sandbox.state.megaFlower) sandbox.state.touchX=sandbox.state.megaFlower.x; frame(); }
+sandbox.state.touchX=sandbox.state.butterfly.x;
 if (sandbox.state.megaFlower) throw new Error('Le butinage calme ne termine pas la collecte.');
 if (Number(elements.get('score').textContent) !== 10000) throw new Error('La fleur rare ne crédite pas le bonus +10k.');
 frame();
@@ -419,3 +420,9 @@ sandbox.state.megaFlower=null;sandbox.state.flowerProgress=0;
 if(hasHarvestBar()) throw new Error('Barre visible après collecte.');
 context.fillText=originalFillText;
 console.log('OK: barre de butinage visible uniquement pendant le contact avec la fleur.');
+
+sandbox.resetGame();sandbox.collectFlower({x:200,y:270},100);
+if(!sandbox.state.beeCheer || sandbox.state.beeCheer.life!==100) throw new Error('Abeille absente après butinage.');
+sandbox.drawBeeCheer();sandbox.resetGame();
+if(sandbox.state.beeCheer) throw new Error('Abeille non réinitialisée.');
+console.log('OK: abeille Whes après collecte et nettoyage à la reprise.');

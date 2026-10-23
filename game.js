@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.13';
+var BUILD_VERSION = '2026.10.23.16';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -19,7 +19,7 @@ ctx.setTransform(dpr,0,0,dpr,0,0);
 var state = {
   t:0, score:0, flowersCollected:0, flightPoints:0, gameOver:false, lives:3, invulnerable:0, level:1,
   butterfly:{x:200,y:270,vx:0,vy:0,shield:false,agility:1},
-  wind:0, heartRobots:[], meadowFlowers:[], fireworks:[], obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
+  wind:0, beeCheer:null, heartRobots:[], meadowFlowers:[], fireworks:[], obstacles:[], bonuses:[], touchX:200, touchY:270, megaFlower:null, nextFlowerScore:100, flowerProgress:0, message:'', messageTimer:0
 };
 
 var shareButton=document.getElementById('share-score');
@@ -212,7 +212,7 @@ function resetEntity(entity,minX,maxX,minY,maxY){
 };
 
 function resetGame(){
-  state.t=0; state.heartRobots=[]; state.fireworks=[]; state.score=0; state.flowersCollected=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
+  state.t=0; state.beeCheer=null; state.heartRobots=[]; state.fireworks=[]; state.score=0; state.flowersCollected=0; state.flightPoints=0; state.gameOver=false; state.lives=3; state.invulnerable=150; state.level=1;
   state.meadowFlowers=[];initMeadowFlowers();
   state.butterfly.color=null;state.butterfly.accent=null;
   state.butterfly.x=200; state.butterfly.y=270; state.butterfly.vx=0; state.butterfly.vy=0; tilt.neutral=null; state.butterfly.shield=false; state.butterfly.agility=1;
@@ -528,6 +528,8 @@ function drawFireworks(){
 function collectFlower(f,points){
   state.score+=points;
   state.flowersCollected++;
+  state.beeCheer={x:clamp(f.x,75,820),y:clamp(f.y-55,90,400),life:100};
+  playSound('abeille-whes');
   if(state.flowersCollected%50===0){
     state.heartRobots.push({x:1020,y:rand(180,390),phase:rand(0,Math.PI*2),fullHint:false});
   }
@@ -548,6 +550,22 @@ function applyBonus(type){
   if(type==='Abeille'){shieldTimer=280; state.butterfly.shield=true;}
 };
 
+
+function drawBeeCheer(){
+  var bee=state.beeCheer;if(!bee) return;
+  var x=bee.x,y=bee.y+Math.sin(state.t*0.15)*3;
+  ctx.save();ctx.globalAlpha=Math.min(1,bee.life/18);
+  var flap=Math.sin(state.t*0.6)*3;
+  px(x-10,y-14-flap,11,9,'#d4f5ef');px(x+2,y-14+flap,11,9,'#d4f5ef');
+  px(x-15,y-6,30,14,'#352b39');px(x-12,y-4,24,10,'#ffe078');
+  px(x-4,y-4,5,10,'#352b39');px(x+6,y-4,4,10,'#352b39');
+  px(x+15,y-5,8,10,'#f7bd4f');px(x+19,y-3,2,2,'#352b39');
+  px(x+22,y+1,4,2,'#ff93b5');
+  px(x+27,y-40,85,32,'#352b39');px(x+30,y-37,79,26,'#fff0bb');
+  px(x+30,y-10,8,8,'#352b39');px(x+32,y-10,4,5,'#fff0bb');
+  ctx.fillStyle='#59304c';ctx.font='bold 18px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('Whes!',x+69,y-23);ctx.restore();
+}
 
 function drawGainSplash(){
   var text=tr(state.message,{points:state.messagePoints || 0});
@@ -638,6 +656,7 @@ function update(){
   updateFireworks();
   if(state.gameOver || (typeof shareCardOpen!=='undefined' && shareCardOpen)) return;
   state.t++;
+  if(state.beeCheer && --state.beeCheer.life<=0) state.beeCheer=null;
   if(state.invulnerable>0) state.invulnerable--;
   if(state.messageTimer>0) state.messageTimer--;
   state.level=Math.min(8,1+Math.floor(state.flowersCollected/111));
@@ -683,7 +702,7 @@ function update(){
   if(state.megaFlower){
     state.megaFlower.x-=(0.42/1.5);
     if(isButinageActive()){
-      state.flowerProgress=Math.min(100,state.flowerProgress+(1.4/1.5));
+      state.flowerProgress=Math.min(100,state.flowerProgress+(1.4/3));
       b.vy*=0.88;
       if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); state.bonus='FLEUR +10K'; state.message=state.flowersCollected===FLOWER_GOAL?'harvestCelebration':'+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
     } else {
@@ -712,6 +731,7 @@ function render(){
   state.meadowFlowers.forEach(drawMeadowFlower);
   drawScanlines();
   drawGameplayOverlay();
+  drawBeeCheer();
 };
 
 function loop(){
