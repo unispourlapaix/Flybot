@@ -405,3 +405,17 @@ if(sandbox.tiltSensitivity!==130 || elements.get('tilt-sensitivity').value!=='13
 sandbox.refreshMobileLanguage();
 if(elements.get('fullscreen').textContent!=='⛶' || elements.get('toggle-controls').textContent.length>2) throw new Error('Commandes non iconifiées.');
 console.log('OK: défaut 130 % et commandes en icônes.');
+
+sandbox.resetGame();
+const drawn=[];const originalFillText=context.fillText;context.fillText=text=>drawn.push(text);
+function hasHarvestBar(){drawn.length=0;sandbox.drawGameplayOverlay();return drawn.includes(sandbox.tr('BUTINAGE CALME'));}
+sandbox.state.megaFlower={x:900,y:270};
+if(hasHarvestBar()) throw new Error('Barre visible loin de la fleur.');
+sandbox.state.megaFlower.x=sandbox.state.butterfly.x;
+if(!hasHarvestBar()) throw new Error('Barre absente pendant le butinage.');
+sandbox.state.flowerProgress=50;sandbox.state.megaFlower.x=900;
+if(hasHarvestBar()) throw new Error('Barre visible après éloignement.');
+sandbox.state.megaFlower=null;sandbox.state.flowerProgress=0;
+if(hasHarvestBar()) throw new Error('Barre visible après collecte.');
+context.fillText=originalFillText;
+console.log('OK: barre de butinage visible uniquement pendant le contact avec la fleur.');

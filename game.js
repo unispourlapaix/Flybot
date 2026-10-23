@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.10.23.10';
+var BUILD_VERSION = '2026.10.23.13';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -551,7 +551,7 @@ function applyBonus(type){
 
 function drawGainSplash(){
   var text=tr(state.message,{points:state.messagePoints || 0});
-  var gain=state.message.charAt(0)==='+' || ['shieldReward','robotLife','harvestCelebration'].indexOf(state.message)>=0;
+  var thorny=['OUPS !','FIN DE VOL','FLEUR MANQUEE'].indexOf(state.message)>=0;
   var timer=state.messageTimer;
   // Apparition souple, puis légère montée et disparition progressive.
   var pop=1-Math.pow(1-clamp((100-timer)/14,0,1),3);
@@ -559,37 +559,61 @@ function drawGainSplash(){
   var y=278-Math.max(0,25-timer)*0.35;
   ctx.save();ctx.translate(480,y);ctx.scale(scale,scale);
   ctx.globalAlpha=Math.min(1,timer/18);
-  ctx.font='bold 22px sans-serif';
+  ctx.font='bold 22px monospace';
   var measured=ctx.measureText?ctx.measureText(text).width:text.length*14;
   var width=clamp(measured+84,180,800),height=74;
-  // Silhouette de bulle avec un contour éclaté façon BD.
-  function burst(dx,dy,color){
-    ctx.fillStyle=color;ctx.beginPath();
-    for(var i=0;i<32;i++){
-      var angle=i*Math.PI*2/32;
-      var tooth=i%2===0?1:0.91;
-      var x=Math.cos(angle)*width/2*tooth+dx;
-      var py=Math.sin(angle)*height/2*tooth+dy;
-      if(i===0) ctx.moveTo(x,py);else ctx.lineTo(x,py);
-    }
-    ctx.closePath();ctx.fill();
+  // Panneau à angles en escalier, dessiné sur une grille de quatre pixels.
+  width=Math.ceil(width/8)*8;
+  var left=-width/2,top=-height/2;
+  function panel(dx,dy,color){
+    px(left+8+dx,top+dy,width-16,height,color);
+    px(left+dx,top+8+dy,width,height-16,color);
   }
-  burst(3,6,'#17233b');burst(0,0,gain?'#ffe992':'#e6daff');
-  ctx.fillStyle='#17233b';ctx.beginPath();ctx.moveTo(14,30);ctx.lineTo(28,49);ctx.lineTo(37,27);ctx.closePath();ctx.fill();
-  ctx.fillStyle=gain?'#ffe992':'#e6daff';ctx.beginPath();ctx.moveTo(17,27);ctx.lineTo(27,42);ctx.lineTo(33,26);ctx.closePath();ctx.fill();
-  // Petites étincelles fixes, sans clignotement.
-  if(gain){
-    px(-width/2-17,-8,4,16,'#ff93c4');px(-width/2-23,-2,16,4,'#ff93c4');
-    px(width/2+13,-21,4,12,'#9cefe0');px(width/2+9,-17,12,4,'#9cefe0');
+  panel(4,8,'#17233b');panel(0,0,thorny?'#67455d':'#376447');
+  px(left+8,top+4,width-16,height-8,thorny?'#dfbeca':'#fff0bb');
+  px(left+4,top+8,width-8,height-16,thorny?'#dfbeca':'#fff0bb');
+  px(left+12,top+8,width-24,4,thorny?'#f8dfe3':'#fffbe2');
+  // Petite queue de bulle en pixels.
+  px(12,top+height-4,24,8,thorny?'#67455d':'#376447');
+  px(16,top+height+4,16,8,thorny?'#67455d':'#376447');
+  px(20,top+height+12,8,4,thorny?'#67455d':'#376447');
+  function pixelFlower(x,y,color){
+    px(x-4,y-12,8,24,color);px(x-12,y-4,24,8,color);
+    px(x-8,y-8,16,16,color);px(x-4,y-4,8,8,'#ffe67d');
+    px(x-12,y+10,8,4,'#79ae67');px(x+5,y+9,8,4,'#79ae67');
+  }
+  if(!thorny){
+    // Lierre et fleurs roses, lilas et bleues autour de la zone de texte.
+    for(var i=0;i<3;i++){
+      px(left-4+i*8,top+height-16-i*8,8,4,'#59864f');
+      px(-left-4-i*8,top+8+i*8,8,4,'#59864f');
+    }
+    pixelFlower(left+8,top+8,'#ee8eb5');
+    pixelFlower(-left-8,top+height-8,'#b09ce9');
+    pixelFlower(left+34,top+height-3,'#8ccbdc');
+    pixelFlower(-left-34,top+2,'#ee8eb5');
+  }else{
+    // Épines en marches, sans pointes lisses ni courbes vectorielles.
+    for(var i=0;i<5;i++){
+      var tx=left+24+i*(width-48)/4;
+      px(tx-6,top-4,12,8,'#67455d');px(tx-2,top-12,4,8,'#67455d');
+      px(tx-6,top+height-4,12,8,'#67455d');px(tx-2,top+height+4,4,8,'#67455d');
+    }
+    px(left-8,-8,8,16,'#67455d');px(left-16,-4,8,8,'#67455d');
+    px(-left,-8,8,16,'#67455d');px(-left+8,-4,8,8,'#67455d');
   }
   ctx.fillStyle='#3c2944';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(text,0,0,width-54);
   ctx.restore();
 }
 
+function isButinageActive(){
+  var f=state.megaFlower,b=state.butterfly;
+  return !!(f && !state.gameOver && Math.abs(f.x-b.x)<42 && Math.abs(f.y-b.y)<46);
+}
 function drawGameplayOverlay(){
   ctx.save();ctx.textAlign="center";
-  if(state.megaFlower){
+  if(isButinageActive()){
     px(330,474,300,24,'#17233b');
     px(336,480,Math.floor(288*state.flowerProgress/100),12,'#ff77a8');
     ctx.fillStyle='#fff1b6';ctx.font='bold 14px monospace';ctx.fillText(tr('BUTINAGE CALME'),480,470,290);
@@ -658,7 +682,7 @@ function update(){
   }
   if(state.megaFlower){
     state.megaFlower.x-=(0.42/1.5);
-    if(Math.abs(state.megaFlower.x-b.x)<42 && Math.abs(state.megaFlower.y-b.y)<46){
+    if(isButinageActive()){
       state.flowerProgress=Math.min(100,state.flowerProgress+(1.4/1.5));
       b.vy*=0.88;
       if(state.flowerProgress>=100){ collectFlower(state.megaFlower,10000); state.bonus='FLEUR +10K'; state.message=state.flowersCollected===FLOWER_GOAL?'harvestCelebration':'+10 000 !'; state.messageTimer=95; state.megaFlower=null; state.flowerProgress=0; }
