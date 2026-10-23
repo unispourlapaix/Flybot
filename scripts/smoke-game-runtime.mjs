@@ -1,0 +1,428 @@
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+
+const source = readFileSync(new URL('../game.js', import.meta.url), 'utf8');
+const elements = new Map();
+const noop = () => {};
+const gradient = { addColorStop: noop };
+const context = {
+  scale: noop, translate: noop, rotate: noop, beginPath: noop, closePath: noop, clearRect: noop, ellipse: noop, fill: noop, fillRect: noop,
+  fillText: noop, lineTo: noop, moveTo: noop, restore: noop, save: noop, setTransform: noop,
+  stroke: noop, strokeRect: noop, createLinearGradient: () => gradient,
+};
+const canvas = {
+  addEventListener: noop,
+  getBoundingClientRect: () => ({ top: 0, left: 0, width: 960, height: 540 }),
+  getContext: () => context,
+};
+for (const id of ['score', 'bonus', 'lives', 'level', 'flower', 'nectar', 'tilt', 'control-status', 'sound', 'share-score', 'share-status', 'share-fallback', 'language', 'harvest-progress', 'harvest-text', 'tilt-sensitivity', 'tilt-sensitivity-value']) elements.set(id, { textContent: '', addEventListener: noop, setAttribute: noop, focus: noop, select: noop });
+elements.set('game', canvas);
+let frame;
+const sandbox = {
+  console,
+  document: { documentElement:{lang:'fr'}, querySelectorAll:()=>[], getElementById: (id) => elements.get(id) },
+  Math,
+  requestAnimationFrame: (callback) => { frame = callback; },
+  window: { addEventListener: noop, devicePixelRatio: 1 },
+};
+vm.createContext(sandbox);
+new vm.Script(readFileSync(new URL('../i18n.js', import.meta.url), 'utf8')).runInContext(sandbox);
+new vm.Script(source, { filename: 'game.js' }).runInContext(sandbox);
+if (typeof frame !== 'function') throw new Error('La boucle de jeu ne programme aucune frame.');
+for (let index = 0; index < 5; index++) frame();
+if (elements.get('score').textContent === '') throw new Error('Le HUD score ne se met pas à jour.');
+if (elements.get('lives').textContent !== '♥♥♥') throw new Error('Le HUD vies ne se met pas à jour.');
+
+for (const obstacle of sandbox.state.obstacles) obstacle.x = 5000;
+for (const bonus of sandbox.state.bonuses) bonus.x = 5000;
+sandbox.state.flightPoints = 1200;
+sandbox.state.score = 0;
+frame();
+if (!sandbox.state.megaFlower) throw new Error('La fleur rare ne se déclenche pas au palier de 100 points.');
+sandbox.state.megaFlower.x = sandbox.state.butterfly.x;
+sandbox.state.megaFlower.y = sandbox.state.butterfly.y;
+for (let index = 0; index < 160; index++) { sandbox.state.touchX=sandbox.state.megaFlower.x; frame(); }
+if (!sandbox.state.megaFlower || sandbox.state.flowerProgress<74 || sandbox.state.flowerProgress>75) throw new Error('Le temps de butinage n’a pas été doublé.');
+for (let index = 0; index < 55; index++) { if(sandbox.state.megaFlower) sandbox.state.touchX=sandbox.state.megaFlower.x; frame(); }
+sandbox.state.touchX=sandbox.state.butterfly.x;
+if (sandbox.state.megaFlower) throw new Error('Le butinage calme ne termine pas la collecte.');
+if (Number(elements.get('score').textContent) !== 10000) throw new Error('La fleur rare ne crédite pas le bonus +10k.');
+frame();
+if (sandbox.state.megaFlower) throw new Error('Le bonus +10k déclenche une cascade de fleurs rares.');
+
+sandbox.state.invulnerable = 0;
+const obstacle = sandbox.state.obstacles[0];
+obstacle.type='bird';obstacle.defeated=false;
+obstacle.x = sandbox.state.butterfly.x;
+obstacle.y = sandbox.state.butterfly.y;
+frame();
+if (sandbox.state.lives !== 2) throw new Error('Une collision ne retire pas exactement une vie.');
+frame();
+if (sandbox.state.lives !== 2) throw new Error('Invulnérabilité post-collision absente.');
+for (let index = 0; index < 2; index++) {
+  sandbox.state.invulnerable = 0;
+  obstacle.type='bird';obstacle.defeated=false;
+obstacle.x = sandbox.state.butterfly.x;
+  obstacle.y = sandbox.state.butterfly.y;
+  frame();
+}
+if (!sandbox.state.gameOver || sandbox.state.lives !== 0) throw new Error('La fin de vol après trois collisions ne fonctionne pas.');
+sandbox.resetGame();
+if (sandbox.state.gameOver || sandbox.state.lives !== 3) throw new Error('La reprise de partie ne restaure pas les trois vies.');
+
+console.log('OK: moteur, HUD, butinage +10k sans cascade, collisions protégées et reprise validés.');
+
+// La commande écran doit retrouver la voie projetée à toute largeur de piste.
+for (const lane of [70, 270, 470]) {
+  const point = sandbox.projectTrack(sandbox.state.butterfly.x, lane, sandbox.track.height);
+  sandbox.setY(point.y);
+  if (Math.abs(sandbox.state.touchY - lane) > 0.00001) throw new Error('Commande hors du repère de la piste.');
+}
+for (const y of [70,270,470]) {
+  const start = sandbox.projectTrack(0,y);
+  const end = sandbox.projectTrack(100,y);
+  if (end.y !== start.y || end.x-start.x !== 100) throw new Error('Défilement horizontal incorrect.');
+}
+sandbox.setY(-100);
+if (sandbox.state.touchY !== 70) throw new Error('Limite haute incorrecte.');
+sandbox.setY(700);
+if (sandbox.state.touchY !== 470) throw new Error('Limite basse incorrecte.');
+console.log('OK: vue horizontale, commande verticale et limites du vol.');
+
+const rock = {type:'rock',x:200,y:460};
+if (sandbox.obstacleTouches(rock,{x:200,y:400})) throw new Error('Le rocher touche un papillon au-dessus.');
+if (!sandbox.obstacleTouches(rock,{x:200,y:455})) throw new Error('Le rocher ne bloque pas le vol bas.');
+for (let i=0;i<3;i++) {
+  const o={}; sandbox.resetObstacle(o,i);
+  if (o.type==='rock' && o.y!==460) throw new Error('Rocher flottant.');
+  if (o.type==='bird' && (o.y<150 || o.y>390)) throw new Error('Oiseau hors du couloir de vol.');
+}
+console.log('OK: rochers au sol, passage au-dessus et oiseaux en altitude.');
+
+sandbox.resetGame();
+sandbox.state.obstacles.forEach(o=>o.x=5000);
+sandbox.setPointer({clientX:700,clientY:180});
+for(let i=0;i<40;i++) frame();
+if(Math.abs(sandbox.state.butterfly.x-700)>5 || Math.abs(sandbox.state.butterfly.y-180)>5) throw new Error('Déplacement libre incorrect.');
+sandbox.keys.arrowleft=true; sandbox.keys.arrowdown=true;
+const before={...sandbox.state.butterfly}; frame();
+if(sandbox.state.butterfly.x>=before.x || sandbox.state.butterfly.y<=before.y) throw new Error('Clavier diagonal incorrect.');
+sandbox.keys={}; sandbox.tilt.enabled=true;
+sandbox.handleOrientation({beta:30,gamma:5});
+if(sandbox.tilt.x!==0 || sandbox.tilt.y!==0) throw new Error('Calibration incorrecte.');
+sandbox.handleOrientation({beta:40,gamma:15});
+if(sandbox.tilt.x<=0 || sandbox.tilt.y<=0) throw new Error('Inclinaison incorrecte.');
+sandbox.stopTilt();
+if(sandbox.tilt.enabled) throw new Error('Désactivation incorrecte.');
+console.log('OK: vol libre, clavier diagonal et calibration des capteurs.');
+
+sandbox.resetGame();
+sandbox.state.obstacles.forEach(o=>o.x=5000);
+sandbox.state.bonuses.forEach(o=>o.x=5000);
+for(let i=0;i<30;i++) frame();
+if(sandbox.state.score!==0) throw new Error('Le vol seul donne encore des points.');
+const flower=sandbox.state.bonuses[0];
+flower.type='Fleur'; flower.x=sandbox.state.butterfly.x;flower.y=sandbox.state.butterfly.y;
+frame();
+if(sandbox.state.score!==100 || Number(elements.get('score').textContent)!==100) throw new Error('Butinage normal incorrect.');
+if(sandbox.state.fireworks.length<48) throw new Error('Feu d’artifice absent.');
+if(new Set(sandbox.state.fireworks.map(p=>p.color)).size<2) throw new Error('Explosion non multicolore.');
+frame();
+if(sandbox.state.score!==100) throw new Error('Fleur comptée deux fois.');
+flower.type='Soleil';flower.x=sandbox.state.butterfly.x;flower.y=sandbox.state.butterfly.y;
+frame();
+if(sandbox.state.score!==100) throw new Error('Un bonus non floral donne des points.');
+for(let i=0;i<80;i++) sandbox.updateFireworks();
+if(sandbox.state.fireworks.length) throw new Error('Particules jamais nettoyées.');
+sandbox.flowerFirework(200,200);sandbox.resetGame();
+if(sandbox.state.fireworks.length || sandbox.state.score) throw new Error('Reprise sans nettoyage.');
+console.log('OK: score uniquement au butinage, explosion multicolore et nettoyage.');
+
+let played=0;
+sandbox.window.Audio=function(src){this.src=src;this.play=()=>{played++;return Promise.resolve();};this.pause=()=>{};};
+sandbox.soundEnabled=false;sandbox.playSound('butinage');
+if(played) throw new Error('Son lancé sans activation.');
+sandbox.soundEnabled=true;sandbox.playSound('butinage');
+if(played!==1 || sandbox.soundPool.butinage.src!=='audio/butinage.wav') throw new Error('Lecture du son incorrecte.');
+console.log('OK: sons activés uniquement à la demande.');
+
+sandbox.resetGame();
+if(Number(elements.get('flower').textContent)!==0) throw new Error('Compteur de fleurs initial incorrect.');
+sandbox.state.obstacles.forEach(o=>o.x=5000);
+sandbox.state.bonuses.forEach(o=>o.x=5000);
+for(let i=0;i<20;i++) frame();
+if(Number(elements.get('flower').textContent)!==0) throw new Error('Le vol modifie les fleurs butinées.');
+sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
+if(Number(elements.get('flower').textContent)!==1 || Number(elements.get('score').textContent)!==100) throw new Error('HUD incohérent après une fleur.');
+sandbox.state.megaFlower={x:900,y:270};sandbox.state.flowerProgress=42;sandbox.updateHud();
+if(Number(elements.get('flower').textContent)!==1 || !elements.get('nectar').textContent.includes('42 %')) throw new Error('Progression confondue avec le compteur.');
+sandbox.collectFlower(sandbox.state.megaFlower,10000);sandbox.state.megaFlower=null;sandbox.updateHud();
+if(Number(elements.get('flower').textContent)!==2 || Number(elements.get('score').textContent)!==10100) throw new Error('HUD incohérent après fleur rare.');
+sandbox.resetGame();
+if(Number(elements.get('flower').textContent)!==0) throw new Error('Compteur non réinitialisé.');
+console.log('OK: points, fleurs butinées et pourcentage séparés dans le HUD.');
+
+sandbox.state.score=10100;sandbox.state.flowersCollected=2;
+let shared;
+sandbox.window.navigator={share:async data=>{shared=data;}};
+await sandbox.shareScore();
+if(!shared.text.includes('10100 points et 2 fleurs') || !shared.url.endsWith('/Flybot/')) throw new Error('Score partagé incorrect.');
+let copied;
+sandbox.window.navigator={clipboard:{writeText:async text=>{copied=text;}}};
+await sandbox.shareScore();
+if(!copied.includes('10100') || !copied.includes('https://')) throw new Error('Copie du score incorrecte.');
+sandbox.window.navigator={share:async()=>{throw {name:'AbortError'};},clipboard:{writeText:async()=>{throw new Error('Copie après annulation.');}}};
+await sandbox.shareScore();
+if(elements.get('share-status').textContent!=='Partage annulé.') throw new Error('Annulation incorrecte.');
+sandbox.window.navigator={};await sandbox.shareScore();
+if(elements.get('share-fallback').hidden || !elements.get('share-fallback').value.includes('10100')) throw new Error('Copie manuelle indisponible.');
+console.log('OK: partage natif, copie, annulation et secours manuel.');
+
+const originalScore=sandbox.state.score;
+for(const lang of ['ja','en','es','fr']) {
+  sandbox.setLanguage(lang);
+  if(sandbox.document.documentElement.lang!==lang || sandbox.state.score!==originalScore) throw new Error('Langue ou partie modifiée.');
+  for(const key of Object.keys(sandbox.translations.fr)) {
+    if(!sandbox.translations[lang][key]) throw new Error('Traduction absente : '+lang+' '+key);
+  }
+  const text=sandbox.scoreShareData().text;
+  if(!text.includes('10100') || /\{\w+\}/.test(text)) throw new Error('Partage non traduit.');
+  sandbox.state.megaFlower={x:900,y:270};sandbox.state.flowerProgress=42;sandbox.updateHud();sandbox.render();
+  if(!elements.get('nectar').textContent.includes('42')) throw new Error('Butinage non traduit.');
+}
+sandbox.setLanguage('invalid');
+if(sandbox.language!=='fr') throw new Error('Repli de langue incorrect.');
+console.log('OK: français, japonais, anglais et espagnol, partie conservée et messages dynamiques traduits.');
+
+sandbox.resetGame();
+if(elements.get('harvest-progress').value!==0) throw new Error('Progression initiale incorrecte.');
+sandbox.state.flowersCollected=887;sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
+if(elements.get('harvest-progress').value!==888 || sandbox.state.flowersCollected!==888 || sandbox.state.message!=='harvestCelebration') throw new Error('Objectif 888 incorrect.');
+sandbox.collectFlower({x:200,y:270},100);sandbox.updateHud();
+if(elements.get('harvest-progress').value!==888 || sandbox.state.flowersCollected!==889) throw new Error('Progression au-delà de 888 incorrecte.');
+sandbox.resetGame();
+if(elements.get('harvest-progress').value!==0) throw new Error('Progression non réinitialisée.');
+if(Math.abs(sandbox.wingOpening(0)-sandbox.wingOpening(60))<0.1) throw new Error('Ailes immobiles.');
+for(let i=0;i<100;i++) if(sandbox.wingOpening(i)<0.22 || sandbox.wingOpening(i)>1) throw new Error('Amplitude des ailes incorrecte.');
+console.log('OK: ailes animées et objectif de 888 fleurs, dépassement et reprise.');
+
+const musicEvents={};let musicPlays=0;
+for(const id of ['music-player','music-track','music-status','music-panel','music-download']) elements.set(id,{setAttribute:noop,addEventListener:noop});
+Object.assign(elements.get('music-player'),{pause:noop,load:noop,play:()=>{musicPlays++;return Promise.resolve();},addEventListener:(name,fn)=>musicEvents[name]=fn});
+new vm.Script(readFileSync(new URL('../music.js',import.meta.url),'utf8')).runInContext(sandbox);
+if(musicPlays) throw new Error('Lecture sans action utilisateur.');
+sandbox.selectMusic(1,true);
+if(!elements.get('music-player').src.endsWith('soar-soar-spirit-of-peace.mp4') || musicPlays!==1) throw new Error('Choix musique incorrect.');
+musicEvents.error();
+if(!elements.get('music-player').src.endsWith('.mp3')) throw new Error('Secours MP3 absent.');
+musicEvents.error();
+if(!elements.get('music-status').textContent) throw new Error('Erreur musique invisible.');
+musicEvents.ended();
+if(sandbox.musicIndex!==2) throw new Error('Enchaînement incorrect.');
+musicEvents.ended();
+if(sandbox.musicIndex!==0) throw new Error('Boucle playlist incorrecte.');
+for(const name of sandbox.musicTracks) for(const ext of ['mp4','mp3']) {
+  if(readFileSync(new URL('../audio/'+name+'.'+ext,import.meta.url)).length===0) throw new Error('Musique vide.');
+}
+console.log('OK: sélection musique, secours MP3, erreurs et boucle de playlist.');
+
+const calls=[];
+sandbox.playSound=name=>calls.push(name);
+sandbox.applyBonus('Soleil');sandbox.applyBonus('Abeille');sandbox.applyBonus('Fleur');
+if(calls.join(',')!=='bonus-pok,bonus-pok') throw new Error('Sons bonus incorrects.');
+const bird={type:'bird',x:300,y:270,called:false}, player={x:200,y:270};
+sandbox.soundEnabled=false;sandbox.birdCall(bird,player);
+if(bird.called) throw new Error('Cri consommé alors que le son est coupé.');
+sandbox.soundEnabled=true;sandbox.birdCall(bird,player);sandbox.birdCall(bird,player);
+if(calls.filter(x=>x==='oiseau-wrah').length!==1) throw new Error('Cri oiseau absent ou répété.');
+sandbox.resetObstacle(bird,0);
+if(bird.called) throw new Error('Cri oiseau non réinitialisé.');
+sandbox.birdCall({type:'rock',x:200,y:270},player);
+if(calls.filter(x=>x==='oiseau-wrah').length!==1) throw new Error('Un rocher crie.');
+console.log('OK: pok des bonus et cri unique au passage des oiseaux.');
+
+const mobileEvents={};
+for(const id of ['fullscreen','toggle-controls','controls','fullscreen-status','game-stage']) elements.set(id,{setAttribute:noop,addEventListener:(name,fn)=>mobileEvents[id+':'+name]=fn});
+const stage=elements.get('game-stage');stage.classList={toggle:noop};
+sandbox.canvas.style={};
+sandbox.document.documentElement.style={setProperty:noop};
+sandbox.document.body={classList:{toggle:noop}};
+sandbox.document.addEventListener=noop;
+sandbox.window.requestAnimationFrame=fn=>fn();
+sandbox.window.innerHeight=844;
+new vm.Script(readFileSync(new URL('../mobile.js',import.meta.url),'utf8')).runInContext(sandbox);
+for(const [width,height] of [[390,600],[844,240],[320,300]]) {
+  stage.clientWidth=width;stage.clientHeight=height;sandbox.fitMobileCanvas();
+  const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);
+  if(cw>width+.01 || ch>height+.01 || Math.abs(cw/ch-16/9)>.001) throw new Error('Canvas mobile déformé ou débordant.');
+}
+await sandbox.toggleFullscreen();
+if(!sandbox.immersive || !elements.get('controls').hidden) throw new Error('Repli immersif incorrect.');
+await sandbox.toggleFullscreen();
+if(sandbox.immersive) throw new Error('Sortie immersive impossible.');
+sandbox.document.documentElement.requestFullscreen=async()=>{throw new Error('Refus navigateur');};
+await sandbox.toggleFullscreen();
+if(!sandbox.immersive) throw new Error('Refus plein écran sans repli.');
+await sandbox.toggleFullscreen();
+sandbox.document.documentElement.requestFullscreen=async()=>{sandbox.document.fullscreenElement=sandbox.document.documentElement;};
+sandbox.document.exitFullscreen=async()=>{sandbox.document.fullscreenElement=null;};
+await sandbox.toggleFullscreen();
+if(!sandbox.immersive || !sandbox.document.fullscreenElement) throw new Error('Plein écran natif incorrect.');
+await sandbox.toggleFullscreen();
+if(sandbox.immersive || sandbox.document.fullscreenElement) throw new Error('Sortie native incorrecte.');
+mobileEvents['toggle-controls:click']();
+if(elements.get('controls').hidden) throw new Error('Réglages inaccessibles.');
+console.log('OK: portrait/paysage, plein écran natif, refus, repli immersif et réglages.');
+
+sandbox.stopTilt();
+sandbox.window.isSecureContext=true;sandbox.window.DeviceOrientationEvent=function(){};
+sandbox.startDefaultTilt();
+if(!sandbox.tilt.autoPending || sandbox.tilt.enabled) throw new Error('Attente des capteurs incorrecte.');
+sandbox.handleOrientation({beta:null,gamma:null});
+if(sandbox.tilt.enabled) throw new Error('Capteurs activés sans données.');
+sandbox.handleOrientation({beta:25,gamma:5});
+if(!sandbox.tilt.enabled || sandbox.tilt.x!==0 || sandbox.tilt.y!==0) throw new Error('Activation automatique non calibrée.');
+sandbox.stopTilt();sandbox.handleOrientation({beta:30,gamma:10});
+if(sandbox.tilt.enabled) throw new Error('Désactivation manuelle ignorée.');
+let requested=false;sandbox.window.DeviceOrientationEvent.requestPermission=()=>{requested=true;};
+sandbox.startDefaultTilt();
+if(requested || sandbox.tilt.autoPending) throw new Error('Permission demandée hors interaction.');
+sandbox.window.isSecureContext=false;sandbox.startDefaultTilt();
+if(sandbox.tilt.autoPending) throw new Error('Capteurs lancés sans contexte sécurisé.');
+console.log('OK: capteurs automatiques sur données valides, calibration et autorisation manuelle préservée.');
+
+for(const id of ['share-card-dialog','share-card-caption','share-card-send','share-card-download','share-card-image','share-card-status','share-card-close']) elements.set(id,{addEventListener:noop,focus:noop});
+elements.get('share-score').focus=noop;
+sandbox.document.createElement=()=>({getContext:()=>({drawImage:noop,fillRect:noop,fillText:noop}),toBlob:fn=>fn({type:'image/png'})});
+sandbox.Image=function(){Object.defineProperty(this,'src',{set:()=>this.onload()});};
+sandbox.URL={createObjectURL:()=> 'blob:score-card',revokeObjectURL:noop};
+sandbox.File=function(parts,name,options){this.name=name;this.type=options.type;};
+for(const id of ['game-stage','controls','mobile-toolbar']) { if(!elements.has(id)) elements.set(id,{});elements.get(id).setAttribute=noop;elements.get(id).removeAttribute=noop;}
+new vm.Script(readFileSync(new URL('../share-art.js',import.meta.url),'utf8')).runInContext(sandbox);
+sandbox.state.score=88800;sandbox.state.flowersCollected=888;
+await sandbox.prepareScoreCard();
+if(!sandbox.preparedShare.file || !sandbox.shareCardOpen || !sandbox.preparedShare.data.text.includes('88800') || !sandbox.preparedShare.data.text.includes('}i{')) throw new Error('Carte score incorrecte.');
+sandbox.state.score=0;
+if(!sandbox.scoreShareData().text.includes('88800')) throw new Error('Score de la carte non figé.');
+let imagePayload;
+sandbox.window.navigator={canShare:()=>true,share:async data=>{imagePayload=data;}};
+await sandbox.shareScore();
+if(imagePayload.files.length!==1 || imagePayload.files[0].type!=='image/png') throw new Error('Image non partagée.');
+sandbox.closeShareCard();
+if(sandbox.shareCardOpen || sandbox.preparedShare) throw new Error('Carte non fermée.');
+sandbox.Image=function(){Object.defineProperty(this,'src',{set:()=>this.onerror()});};
+await sandbox.prepareScoreCard();
+if(sandbox.preparedShare.file || !sandbox.preparedShare.data.text || elements.get('share-card-send').disabled) throw new Error('Repli texte après erreur image incorrect.');
+sandbox.closeShareCard();
+console.log('OK: carte illustrée, score figé, image partagée et secours texte.');
+
+for(const name of sandbox.shareArtNames){
+  const bytes=readFileSync(new URL('../images/share/butterfly-'+name+'.png',import.meta.url));
+  if(bytes.toString('hex',0,8)!=='89504e470d0a1a0a' || bytes.readUInt32BE(16)!==bytes.readUInt32BE(20)) throw new Error('Illustration absente ou non carrée.');
+}
+console.log('OK: cinq illustrations PNG carrées disponibles.');
+
+sandbox.resetGame();
+const shieldBird={type:'bird',x:200,y:270,defeated:false};
+sandbox.state.invulnerable=0;sandbox.state.butterfly.shield=true;
+sandbox.hitButterfly(shieldBird);
+if(sandbox.state.score!==250 || sandbox.state.lives!==3 || sandbox.state.butterfly.shield || !shieldBird.defeated) throw new Error('Bonus bouclier oiseau incorrect.');
+sandbox.state.invulnerable=0;sandbox.hitButterfly(shieldBird);
+if(sandbox.state.score!==250 || sandbox.state.lives!==3) throw new Error('Ennemi déjà éliminé compté deux fois.');
+for(let i=0;i<3;i++){
+ const f={x:200,y:455,kind:i};const previous=sandbox.state.score;
+ sandbox.collectMeadowFlower(f);
+ if(sandbox.state.butterfly.color!==sandbox.meadowKinds[i].color || sandbox.state.score!==previous+150 || f.x<1000) throw new Error('Fleur de prairie incorrecte.');
+}
+if(sandbox.state.flowersCollected!==3) throw new Error('Ennemis confondus avec les fleurs.');
+const expected=[[.001,'alien'],[.005,'ufo'],[.15,'hornet'],[.5,'bird'],[.9,'rock']];
+for(const [roll,type] of expected){
+ if(sandbox.enemyType(roll)!==type) throw new Error('Rareté incorrecte.');
+ sandbox.drawObstacle({type,x:500,y:270});
+}
+sandbox.resetGame();
+if(sandbox.state.butterfly.color || sandbox.state.meadowFlowers.length!==3) throw new Error('Reprise prairie incorrecte.');
+console.log('OK: bonus bouclier sans doublon, fleurs colorées, bonus et rareté des ennemis.');
+
+sandbox.resetGame();sandbox.state.flowersCollected=49;
+sandbox.collectFlower({x:200,y:270},100);
+if(sandbox.state.heartRobots.length!==1) throw new Error('Robot absent à 50 fleurs.');
+sandbox.collectFlower({x:200,y:270},100);
+if(sandbox.state.heartRobots.length!==1) throw new Error('Robot répété après le palier.');
+sandbox.state.flowersCollected=99;sandbox.collectFlower({x:200,y:270},100);
+if(sandbox.state.heartRobots.length!==2) throw new Error('Robot absent à 100 fleurs.');
+sandbox.state.heartRobots=[{x:200,y:270,phase:0,fullHint:false}];
+sandbox.state.butterfly.x=200;sandbox.state.butterfly.y=270;
+sandbox.updateHeartRobots();
+if(sandbox.state.lives!==3 || sandbox.state.heartRobots.length!==1) throw new Error('Cœur consommé à vies pleines.');
+sandbox.state.lives=2;sandbox.updateHeartRobots();
+if(sandbox.state.lives!==3 || sandbox.state.heartRobots.length!==0) throw new Error('Vie non rendue.');
+sandbox.updateHeartRobots();
+if(sandbox.state.lives!==3) throw new Error('Vie rendue deux fois.');
+sandbox.state.heartRobots=[{x:-61,y:270,phase:0}];sandbox.updateHeartRobots();
+if(sandbox.state.heartRobots.length) throw new Error('Robot hors écran non nettoyé.');
+sandbox.drawHeartRobot({x:300,y:250,phase:0});sandbox.resetGame();
+if(sandbox.state.heartRobots.length) throw new Error('Robots non réinitialisés.');
+console.log('OK: robot cœur tous les 50 butinages, vie plafonnée et collecte unique.');
+
+sandbox.immersive=true;
+for(const [width,height] of [[390,844],[844,390],[320,568]]){
+ stage.clientWidth=width;stage.clientHeight=height;sandbox.fitMobileCanvas();
+ const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);
+ const visibleWidth=sandbox.portraitCanvas?ch:cw,visibleHeight=sandbox.portraitCanvas?cw:ch;
+ if(visibleWidth>width+.01 || visibleHeight>height+.01 || visibleWidth*visibleHeight/(width*height)<.8) throw new Error('Jeu trop petit en plein écran.');
+}
+sandbox.portraitCanvas=true;sandbox.tilt.enabled=false;
+const oldRect=sandbox.canvas.getBoundingClientRect;
+sandbox.canvas.getBoundingClientRect=()=>({left:10,top:20,width:300,height:533.333333});
+sandbox.setPointer({clientX:160,clientY:286.6666665});
+if(Math.abs(sandbox.state.touchX-480)>.001 || Math.abs(sandbox.state.touchY-270)>.001) throw new Error('Tactile portrait incorrect.');
+sandbox.canvas.getBoundingClientRect=oldRect;sandbox.immersive=false;
+console.log('OK: plein écran >80% en portrait/paysage et correspondance tactile après rotation.');
+
+sandbox.portraitCanvas=false;sandbox.tilt.enabled=true;sandbox.tilt.autoPending=false;sandbox.tilt.neutral=null;
+sandbox.handleOrientation({beta:30,gamma:0});
+sandbox.setTiltSensitivity(50,false);sandbox.handleOrientation({beta:40,gamma:10});
+const gentle=sandbox.tilt.x;
+sandbox.setTiltSensitivity(100,false);sandbox.handleOrientation({beta:40,gamma:10});
+const normal=sandbox.tilt.x;
+sandbox.setTiltSensitivity(200,false);sandbox.handleOrientation({beta:40,gamma:10});
+if(Math.abs(normal-gentle*2)>.0001 || Math.abs(sandbox.tilt.x-normal*2)>.0001) throw new Error('Sensibilité capteurs incorrecte.');
+sandbox.handleOrientation({beta:31,gamma:1});
+if(sandbox.tilt.x || sandbox.tilt.y) throw new Error('Zone neutre perdue.');
+sandbox.handleOrientation({beta:80,gamma:80});
+if(Math.abs(sandbox.tilt.x)>1 || Math.abs(sandbox.tilt.y)>1) throw new Error('Sensibilité dépasse les limites.');
+sandbox.setTiltSensitivity('incorrect',false);
+if(sandbox.tiltSensitivity!==130) throw new Error('Valeur invalide non gérée.');
+const settings=new Map();sandbox.window.localStorage={getItem:key=>settings.get(key),setItem:(key,value)=>settings.set(key,value)};
+sandbox.setTiltSensitivity(150,true);
+if(settings.get('flybot-tilt-sensitivity')!=='150') throw new Error('Sensibilité non sauvegardée.');
+sandbox.resetGame();
+if(sandbox.tiltSensitivity!==150) throw new Error('Sensibilité perdue à la reprise.');
+console.log('OK: sensibilité 50–200 %, zone neutre, limites et sauvegarde.');
+
+sandbox.setTiltSensitivity(null,false);
+if(sandbox.tiltSensitivity!==130 || elements.get('tilt-sensitivity').value!=='130') throw new Error('Défaut 130 % incorrect.');
+sandbox.refreshMobileLanguage();
+if(elements.get('fullscreen').textContent!=='⛶' || elements.get('toggle-controls').textContent.length>2) throw new Error('Commandes non iconifiées.');
+console.log('OK: défaut 130 % et commandes en icônes.');
+
+sandbox.resetGame();
+const drawn=[];const originalFillText=context.fillText;context.fillText=text=>drawn.push(text);
+function hasHarvestBar(){drawn.length=0;sandbox.drawGameplayOverlay();return drawn.includes(sandbox.tr('BUTINAGE CALME'));}
+sandbox.state.megaFlower={x:900,y:270};
+if(hasHarvestBar()) throw new Error('Barre visible loin de la fleur.');
+sandbox.state.megaFlower.x=sandbox.state.butterfly.x;
+if(!hasHarvestBar()) throw new Error('Barre absente pendant le butinage.');
+sandbox.state.flowerProgress=50;sandbox.state.megaFlower.x=900;
+if(hasHarvestBar()) throw new Error('Barre visible après éloignement.');
+sandbox.state.megaFlower=null;sandbox.state.flowerProgress=0;
+if(hasHarvestBar()) throw new Error('Barre visible après collecte.');
+context.fillText=originalFillText;
+console.log('OK: barre de butinage visible uniquement pendant le contact avec la fleur.');
+
+sandbox.resetGame();sandbox.collectFlower({x:200,y:270},100);
+if(!sandbox.state.beeCheer || sandbox.state.beeCheer.life!==100) throw new Error('Abeille absente après butinage.');
+sandbox.drawBeeCheer();sandbox.resetGame();
+if(sandbox.state.beeCheer) throw new Error('Abeille non réinitialisée.');
+console.log('OK: abeille Whes après collecte et nettoyage à la reprise.');

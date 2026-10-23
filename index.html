@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Flybot — Vol horizontal</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%A6%8B%3C/text%3E%3C/svg%3E" />
+    <style>
+      body { min-height:100vh; display:flex; align-items:center; margin:0; background:#101a2b; font-family:monospace; overflow:hidden; }
+      #ui { position:fixed; top:12px; left:12px; color:#fff6bd; background:#101a2be8; padding:8px 12px; border:3px solid #f7d354; box-shadow:4px 4px 0 #713f64; font-weight:700; letter-spacing:1px; z-index:10; text-shadow:2px 2px 0 #713f64; }
+      canvas { display:block; width:min(100vw,177.7778vh); height:auto; aspect-ratio:16/9; margin:auto; image-rendering:pixelated; touch-action:none; }
+      #controls { position:fixed; bottom:8px; left:8px; right:8px; z-index:11; color:#fff6bd; font-size:12px; }
+      select { font:inherit; padding:8px; }
+      button { font:inherit; background:#fff1b6; color:#17233b; border:2px solid #713f64; padding:8px; cursor:pointer; }
+      #control-status { background:#101a2be8; padding:4px; }
+      #controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; max-height:35vh; overflow:auto; }
+      #harvest-progress { width:120px; height:12px; accent-color:#ff77a8; }
+      #ui { right:12px; font-size:clamp(10px,1.4vw,14px); }
+      #share-fallback { width:min(90vw,480px); min-height:64px; }
+      #artist-credit { background:#101a2be8; padding:6px; }
+      #artist-credit p { margin:6px 0; }
+      #artist-credit a { color:#ffe66d; }
+      #music-panel { display:flex; align-items:center; flex-wrap:wrap; gap:6px; background:#101a2be8; padding:6px; }
+      #music-player { width:270px; max-width:80vw; height:36px; }
+      #music-track { max-width:75vw; }
+      #music-download { color:#ffe66d; }
+      * { box-sizing:border-box; }
+      html { height:100%; background:#101a2b; }
+      body { height:100vh; height:var(--app-height,100dvh); min-height:0; width:100%; display:grid;
+        grid-template-rows:auto minmax(0,1fr) auto auto; gap:4px;
+        padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); }
+      #ui { position:static; margin:4px 6px; padding:6px; font-size:clamp(10px,1.2vw,14px); max-height:24vh; overflow:auto; }
+      #game-stage { min-width:0; min-height:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+      #game { flex:none; width:100%; height:auto; max-width:100%; max-height:100%; object-fit:contain; }
+      #mobile-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:0 6px; color:#fff6bd; }
+      #controls { position:static; max-height:38vh; max-height:38dvh; margin:0 6px; padding:4px; overscroll-behavior:contain; }
+      #controls[hidden] { display:none; }
+      button,select,summary { min-height:44px; touch-action:manipulation; }
+      #fullscreen-status { font-size:11px; }
+      body.immersive #version { display:none; }
+      @media(max-height:500px) { #ui { font-size:10px; margin:2px 4px; padding:3px; } #mobile-toolbar button { min-height:36px; padding:4px 8px; } #harvest-progress { width:70px; } }
+      @media(max-width:600px) { #music-panel { width:100%; } #music-player { width:100%; max-width:100%; } }
+      #share-card-dialog[hidden] { display:none; }
+      #share-card-dialog { position:fixed; inset:0; z-index:100; background:#101a2bf5; overflow:auto; padding:20px; color:#fff1b6; }
+      .share-card-content { max-width:520px; margin:auto; text-align:center; }
+      #share-card-image { width:min(100%,50vh); height:auto; border-radius:18px; }
+      #share-card-caption { white-space:pre-line; }
+      #share-card-download { color:#ffe66d; display:inline-block; padding:12px; }
+      #share-card-download[hidden] { display:none; }
+      body.immersive { display:block; padding:0; }
+      body.immersive #game-stage { position:absolute; inset:0; width:100%; height:100%; }
+      body.immersive #game { max-width:none; max-height:none; }
+      body.immersive #game-stage.portrait-game #game { transform:rotate(90deg); }
+      body.immersive #ui { position:fixed; z-index:10; top:env(safe-area-inset-top,0px); left:env(safe-area-inset-left,0px); right:auto;
+        max-width:65%; max-height:20%; margin:4px; font-size:10px; padding:4px; background:#101a2bb0; border-width:1px; box-shadow:none; }
+      body.immersive #mobile-toolbar { position:fixed; z-index:12; right:env(safe-area-inset-right,0px); bottom:env(safe-area-inset-bottom,0px);
+        max-width:100%; justify-content:flex-end; background:#101a2b99; padding:4px; }
+      body.immersive #fullscreen-status { display:none; }
+      body.immersive #controls { position:fixed; z-index:13; left:0; right:0; bottom:calc(56px + env(safe-area-inset-bottom,0px));
+        background:#101a2bf5; border:1px solid #f7d354; max-height:55%; }
+      #sensitivity-setting { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:6px; }
+      #tilt-sensitivity { width:160px; max-width:55vw; min-height:44px; accent-color:#ff77a8; }
+      #tilt-sensitivity-help { flex-basis:100%; }
+      body { grid-template-rows:auto minmax(0,1fr) auto; }
+      #ui { margin-top:56px; }
+      #mobile-toolbar,body.immersive #mobile-toolbar {
+        position:fixed; z-index:20; top:calc(4px + env(safe-area-inset-top,0px));
+        left:calc(4px + env(safe-area-inset-left,0px)); right:auto; bottom:auto;
+        display:flex; flex-wrap:nowrap; justify-content:flex-start; gap:6px; padding:2px; border-radius:12px; background:#101a2bc9;
+      }
+      #mobile-toolbar button { width:44px; height:44px; min-height:44px; padding:0; font-size:26px; line-height:1; border-radius:9px; }
+      #mobile-toolbar button[aria-pressed="true"] { background:#bde8dc; }
+      #fullscreen-status { display:none; }
+      body.immersive #ui { top:calc(58px + env(safe-area-inset-top,0px)); }
+      body.immersive #controls { top:calc(58px + env(safe-area-inset-top,0px)); bottom:auto; left:env(safe-area-inset-left,0px); right:auto; width:min(560px,95vw); }
+      body #ui,body.immersive #ui {
+        width:260px; max-width:calc(100vw - 16px); height:66px; min-height:66px; max-height:66px;
+        display:grid; grid-template-columns:minmax(0,1fr) 64px 42px; grid-template-rows:24px 22px;
+        align-items:center; gap:2px 8px; padding:6px 8px; overflow:hidden;
+        font-size:12px; line-height:20px; letter-spacing:0; border:1px solid #e8c577;
+        border-radius:10px; box-shadow:none; text-shadow:none; background:#101a2bd9;
+        margin:58px 8px 4px;
+      }
+      body.immersive #ui { margin:0 8px; }
+      .hud-score { min-width:0; display:flex; align-items:center; gap:5px; }
+      .hud-label { font-size:9px; flex-shrink:0; }
+      #score { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      #score,#flower,#level { font-variant-numeric:tabular-nums; }
+      .hud-lives { white-space:nowrap; color:#ff93a8; font-size:15px; text-align:center; }
+      .hud-level { white-space:nowrap; font-size:10px; }
+      .hud-flowers { min-width:0; overflow:hidden; white-space:nowrap; }
+      .hud-goal { opacity:.65; font-size:10px; }
+      body #ui #harvest-progress { grid-column:2 / 4; width:100%; height:8px; margin:0; }
+      #game-info { flex-basis:100%; line-height:1.6; }
+      .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+      body #ui,body.immersive #ui {
+        display:flex; flex-wrap:nowrap; align-items:center; gap:8px; width:calc(100% - 16px); max-width:none;
+        height:50px; min-height:50px; max-height:50px; padding:2px 6px; margin:4px 8px;
+        font-size:12px; white-space:nowrap; overflow:hidden;
+      }
+      body.immersive #ui { top:env(safe-area-inset-top,0px); left:env(safe-area-inset-left,0px); right:env(safe-area-inset-right,0px); width:auto; }
+      .hud-score { flex:1 1 70px; min-width:28px; }
+      .hud-lives { flex:none; font-size:13px; }
+      .hud-level { flex:none; }
+      .hud-flowers { flex:none; font-size:11px; }
+      #mobile-toolbar,body.immersive #mobile-toolbar {
+        position:static; flex:none; display:flex; flex-wrap:nowrap; gap:2px; padding:0; margin:0 0 0 auto;
+        background:transparent; border-radius:0; max-width:none;
+      }
+      #mobile-toolbar button { flex:none; width:44px; height:44px; min-height:44px; font-size:23px; border-width:1px; }
+      #game-info #harvest-progress { width:180px; height:10px; }
+      @media(max-width:380px) { body #ui,body.immersive #ui { gap:4px; padding:2px 4px; } .hud-goal { display:none; } }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <span class="hud-score"><span aria-hidden="true">★</span><span class="sr-only" data-i18n="POINTS">POINTS</span> <strong id="score">0</strong></span>
+      <span id="lives" class="hud-lives">♥♥♥</span>
+      <span class="hud-level"><span aria-hidden="true">Lv</span><span class="sr-only" data-i18n="NIVEAU">NIVEAU</span> <span id="level">1</span></span>
+      <span class="hud-flowers"><span aria-hidden="true">✿</span><span class="sr-only" data-i18n="FLEURS BUTINÉES">FLEURS BUTINÉES</span> <span id="flower">0</span><span class="hud-goal">/888</span></span>
+      <nav id="mobile-toolbar">
+      <button id="fullscreen" type="button" aria-pressed="false" aria-label="Plein écran" title="Plein écran">⛶</button>
+      <button id="toggle-controls" type="button" aria-expanded="false" aria-controls="controls" aria-label="Réglages" title="Réglages">⚙</button>
+      <button id="tilt" type="button" aria-pressed="false" aria-label="Activer l’inclinaison" title="Activer l’inclinaison">▣</button>
+      <span id="fullscreen-status" role="status"></span>
+    </nav>
+    </div>
+    <main id="game-stage"><canvas id="game" width="960" height="540"></canvas></main>
+
+    <div id="controls"><label><span data-i18n="Langue">Langue</span> <select id="language"><option value="fr">Français</option><option value="ja">日本語</option><option value="en">English</option><option value="es">Español</option></select></label> <button id="share-score" type="button" data-i18n="Partager mon score">Partager mon score</button> <button id="sound" type="button" aria-pressed="false">Son : coupé</button>  <span id="control-status" role="status">Souris, doigt ou flèches / ZQSD</span>
+      <section id="game-info">
+        <progress id="harvest-progress" max="888" value="0"></progress>
+        <div><span data-i18n="BONUS">BONUS</span> : <span id="bonus">AUCUN</span></div>
+        <div id="nectar"></div><div id="harvest-text"></div>
+        <small id="version">v2026.10.23.16</small>
+      </section>
+      <label id="sensitivity-setting" for="tilt-sensitivity">
+        <span data-i18n="tiltSensitivity">Sensibilité des capteurs</span>
+        <input id="tilt-sensitivity" type="range" min="50" max="200" step="10" value="130" aria-describedby="tilt-sensitivity-help">
+        <output id="tilt-sensitivity-value" for="tilt-sensitivity">130 %</output>
+        <small id="tilt-sensitivity-help" data-i18n="tiltSensitivityHelp">50 % : doux • 100 % : normal • 200 % : réactif</small>
+      </label>
+      <section id="music-panel" aria-label="Musique">
+        <label for="music-track" data-i18n="musicLabel">Musique</label>
+        <select id="music-track">
+          <option value="0">Vole, vole, Esprit de paix</option>
+          <option value="1">Soar, soar, Spirit of Peace</option>
+          <option value="2">Je lève mes yeux vers les montagnes…</option>
+        </select>
+        <audio id="music-player" controls preload="none" aria-label="Lecteur de musique">
+          <source src="audio/vole-vole-esprit-de-paix.mp4" type="audio/mp4">
+          <source src="audio/vole-vole-esprit-de-paix.mp3" type="audio/mpeg">
+        </audio>
+        <span id="music-status" role="status"></span>
+        <a id="music-download" href="audio/vole-vole-esprit-de-paix.mp3" target="_blank" rel="noopener" data-i18n="musicOpen">Ouvrir le morceau</a>
+      </section>
+
+
+      <details id="artist-credit"><summary data-i18n="Artiste et musiques">Artiste et musiques</summary>
+        <p id="artist-info"><span data-i18n="Artiste :">Artiste :</span> <strong>Emmanuel Payet</strong> — <a href="https://emmanuel.gallery/" target="_blank" rel="noopener noreferrer">emmanuel.gallery</a> · <a href="https://www.emmanuelpayet.art" target="_blank" rel="noopener noreferrer">emmanuelpayet.art</a></p>
+        <p>Vole, vole, Esprit de paix • Soar, soar, Spirit of Peace • Je lève mes yeux vers les montagnes…</p>
+        <p data-i18n="Effets du jeu : carillons synthétisés pour Flybot.">Effets du jeu : carillons synthétisés pour Flybot.</p>
+      </details>
+    </div>
+    <section id="share-card-dialog" role="dialog" aria-modal="true" aria-labelledby="share-card-title" hidden>
+      <div class="share-card-content">
+        <h2 id="share-card-title" data-i18n="cardTitle">Mon papillon porte-bonheur</h2>
+        <img id="share-card-image" alt="" hidden>
+        <p id="share-card-caption"></p><span id="share-status" role="status" aria-live="polite"></span><textarea id="share-fallback" aria-label="Score à copier" readonly hidden></textarea><p id="share-card-status" role="status"></p>
+        <button id="share-card-send" type="button" data-i18n="Partager mon score">Partager mon score</button>
+        <a id="share-card-download" data-i18n="cardDownload" hidden>Télécharger l’image</a>
+        <button id="share-card-close" type="button" data-i18n="cardClose">Retour au vol</button>
+      </div>
+    </section>
+    <script src="i18n.js?v=2026.10.23.16" defer></script>
+    <script src="music.js?v=2026.10.23.16" defer></script>
+    <script src="game.js?v=2026.10.23.16" defer></script>
+    <script src="mobile.js?v=2026.10.23.16" defer></script>
+    <script src="share-art.js?v=2026.10.23.16" defer></script>
+  </body>
+</html>
