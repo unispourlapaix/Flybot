@@ -438,7 +438,7 @@ if(sandbox.state.beeCheer) throw new Error('Abeille non réinitialisée.');
 console.log('OK: abeille Whes après collecte et nettoyage à la reprise.');
 
 function bookNode(){
-  return {children:[],textContent:'',setAttribute:noop,focus:noop,addEventListener(name,fn){this[name]=fn;},
+  return {children:[],style:{},textContent:'',setAttribute:noop,focus:noop,addEventListener(name,fn){this[name]=fn;},
     replaceChildren(){this.children=[];},appendChild(el){this.children.push(el);},append(...els){this.children.push(...els);}};
 }
 for(const id of ['flower-book','flower-book-open','flower-book-list','flower-book-plate','flower-book-count']) elements.set(id,bookNode());
@@ -450,19 +450,24 @@ function loadHerbarium(){
   for(const name of ['herbarium-data.js','herbarium.js']) new vm.Script(readFileSync(new URL('../'+name,import.meta.url),'utf8')).runInContext(sandbox);
 }
 loadHerbarium();
-if(sandbox.flowerPlates.length!==32 || new Set(sandbox.flowerPlates.map(row=>row[0])).size!==32) throw new Error('Catalogue incomplet.');
+if(sandbox.flowerPlates.length!==88 || new Set(sandbox.flowerPlates.map(row=>row[0])).size!==88) throw new Error('Catalogue incomplet.');
 sandbox.collectFlower({x:200,y:270},100);
 sandbox.resetGame();
 loadHerbarium();
 elements.get('flower-book-open').click();
 const bookPlate=elements.get('flower-book-plate'),bookList=elements.get('flower-book-list');
-if(elements.get('flower-book-count').textContent!=='1 / 32' || bookList.children.filter(el=>!el.disabled).length!==1 || bookPlate.children.length!==3) throw new Error('Découverte ou restauration incorrecte.');
+if(elements.get('flower-book-count').textContent!=='1 / 88' || bookList.children.filter(el=>!el.disabled).length!==1 || bookPlate.children.length!==3) throw new Error('Découverte ou restauration incorrecte.');
 const flightBeforeBook=sandbox.state.t;frame();
 if(sandbox.state.t!==flightBeforeBook) throw new Error('Le vol continue pendant la lecture.');
 sandbox.setLanguage('ja');
 if(bookPlate.children[1].textContent!=='エーデルワイス') throw new Error('Planche non traduite.');
 book.open=false;book.close();
-for(let i=0;i<33;i++) sandbox.collectFlower({x:200,y:270},100);
+settings.set('flybot-herbarium-v1','42');
+loadHerbarium();
 elements.get('flower-book-open').click();
-if(elements.get('flower-book-count').textContent!=='32 / 32' || bookList.children.some(el=>el.disabled)) throw new Error('Plafond des découvertes incorrect.');
-console.log('OK: herbier 32 planches, déblocage par butinage, sauvegarde, pause et traduction.');
+if(elements.get('flower-book-count').textContent!=='42 / 88') throw new Error('Ancienne collection perdue.');
+book.open=false;book.close();
+for(let i=0;i<47;i++) sandbox.collectFlower({x:200,y:270},100);
+elements.get('flower-book-open').click();
+if(elements.get('flower-book-count').textContent!=='88 / 88' || bookList.children.some(el=>el.disabled)) throw new Error('Plafond des découvertes incorrect.');
+console.log('OK: herbier 88 planches, déblocage par butinage, sauvegarde, pause et traduction.');

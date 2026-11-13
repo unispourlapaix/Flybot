@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.11.13.2';
+var BUILD_VERSION = '2026.11.13.6';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -516,15 +516,15 @@ function flowerFirework(x,y){
 }
 function heartPetals(x,y,color){
   for(var i=0;i<12;i++){
-    var life=rand(34,58);
-    state.fireworks.push({x:x,y:y,vx:rand(-2.2,2.2),vy:rand(-3.6,-1.4),
+    var life=rand(68,100);
+    state.fireworks.push({x:x,y:y,vx:rand(-0.85,0.85),vy:rand(-1.65,-0.65),
       life:life,maxLife:life,size:i%3===0?3:2,color:i%2===0?color:'#ff93b5',heart:true});
   }
   if(state.fireworks.length>500) state.fireworks.splice(0,state.fireworks.length-500);
 }
 function updateFireworks(){
   state.fireworks=state.fireworks.filter(function(p){
-    p.x+=p.vx;p.y+=p.vy;p.vx*=0.98;p.vy=p.vy*0.98+0.045;
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.98;p.vy=p.vy*0.98+(p.heart?0.006:0.045);
     return --p.life>0;
   });
 }

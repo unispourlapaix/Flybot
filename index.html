@@ -129,8 +129,12 @@
       #flower-book-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(130px,100%),1fr)); align-content:start; gap:6px; }
       #flower-book-list button { text-align:left; min-width:0; overflow-wrap:anywhere; border:1px solid #b8a785; background:#fff7e8; color:#332b22; }
       #flower-book-list button[aria-current="true"] { background:#dce4cb; border-color:#627751; }
-      #flower-book-list button:disabled { color:#766a57; background:#e9deca; cursor:default; }
+      #flower-book-list button:disabled { color:#555; background:#e2e2e2; border-color:#b7b7b7; filter:grayscale(1); opacity:1; cursor:default; }
       @media(max-width:560px) { .flower-book-layout { grid-template-columns:1fr; } #flower-book-plate svg { max-width:170px; } }
+      @media(max-width:400px) { #mobile-toolbar button { width:38px; } }
+      .herbarium-artwork { position:relative; overflow:hidden; aspect-ratio:1; width:100%; max-width:380px;
+        margin:0 auto 12px; background:#fbf4e8; border-radius:5px; }
+      .herbarium-artwork img { position:absolute; width:200%; height:200%; max-width:none; display:block; }
     </style>
   </head>
   <body>
@@ -143,18 +147,18 @@
       <button id="fullscreen" type="button" aria-pressed="false" aria-label="Plein écran" title="Plein écran">⛶</button>
       <button id="toggle-controls" type="button" aria-expanded="false" aria-controls="controls" aria-label="Réglages" title="Réglages">⚙</button>
       <button id="tilt" type="button" aria-pressed="false" aria-label="Activer l’inclinaison" title="Activer l’inclinaison">▣</button>
+      <button id="flower-book-open" type="button" aria-haspopup="dialog" aria-label="Herbier des fleurs">📖</button>
       <span id="fullscreen-status" role="status"></span>
     </nav>
     </div>
     <main id="game-stage"><canvas id="game" width="960" height="540"></canvas></main>
 
     <div id="controls"><label><span data-i18n="Langue">Langue</span> <select id="language"><option value="fr">Français</option><option value="ja">日本語</option><option value="en">English</option><option value="es">Español</option></select></label> <button id="share-score" type="button" data-i18n="Partager mon score">Partager mon score</button> <button id="sound" type="button" aria-pressed="false">Son : coupé</button>  <span id="control-status" role="status">Souris, doigt ou flèches / ZQSD</span>
-      <button id="flower-book-open" type="button" aria-haspopup="dialog">✿ Herbier des fleurs · 0/32</button>
       <section id="game-info">
         <progress id="harvest-progress" max="888" value="0"></progress>
         <div><span data-i18n="BONUS">BONUS</span> : <span id="bonus">AUCUN</span></div>
         <div id="nectar"></div><div id="harvest-text"></div>
-        <small id="version">v2026.11.13.2</small>
+        <small id="version">v2026.11.13.6</small>
       </section>
       <label id="sensitivity-setting" for="tilt-sensitivity">
         <span data-i18n="tiltSensitivity">Sensibilité des capteurs</span>
@@ -195,7 +199,7 @@
       </div>
     </section>
     <dialog id="flower-book" aria-labelledby="flower-book-title">
-      <header><div><h2 id="flower-book-title" data-i18n="flowerBook">Herbier des fleurs</h2><span id="flower-book-count">0 / 32</span></div>
+      <header><div><h2 id="flower-book-title" data-i18n="flowerBook">Herbier des fleurs</h2><span id="flower-book-count">0 / 88</span></div>
         <form method="dialog"><button type="submit" data-i18n="cardClose">Retour au vol</button></form>
       </header>
       <div class="flower-book-layout">
@@ -203,12 +207,12 @@
         <div id="flower-book-list"></div>
       </div>
     </dialog>
-    <script src="i18n.js?v=2026.11.13.2" defer></script>
-    <script src="music.js?v=2026.11.13.2" defer></script>
-    <script src="game.js?v=2026.11.13.2" defer></script>
-    <script src="mobile.js?v=2026.11.13.2" defer></script>
-    <script src="share-art.js?v=2026.11.13.2" defer></script>
-      <script src="herbarium-data.js?v=2026.11.13.2" defer></script>
-    <script src="herbarium.js?v=2026.11.13.2" defer></script>
+    <script src="i18n.js?v=2026.11.13.6" defer></script>
+    <script src="music.js?v=2026.11.13.6" defer></script>
+    <script src="game.js?v=2026.11.13.6" defer></script>
+    <script src="mobile.js?v=2026.11.13.6" defer></script>
+    <script src="share-art.js?v=2026.11.13.6" defer></script>
+      <script src="herbarium-data.js?v=2026.11.13.6" defer></script>
+    <script src="herbarium.js?v=2026.11.13.6" defer></script>
   </body>
 </html>

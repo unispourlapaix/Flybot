@@ -78,10 +78,23 @@
     number.textContent='№ '+String(index+1).padStart(2,'0');
     return svg;
   }
+  function artwork(row,index,name){
+    var frame=node('div','','herbarium-artwork');
+    var image=node('img');
+    image.alt=name;
+    image.style.left=(index%2?-100:0)+'%';
+    image.style.top=(Math.floor(index/2)%2?-100:0)+'%';
+    image.addEventListener('error',function(){
+      frame.className='';
+      frame.replaceChildren(illustration(row,index));
+    });
+    image.src='images/herbarium/plate-'+String(Math.floor(index/4)+1).padStart(2,'0')+'.webp';
+    frame.appendChild(image);
+    return frame;
+  }
   function refreshBadge(){
-    open.textContent='✿ '+tr('flowerBook')+' · '+unlocked+'/'+total;
     open.setAttribute('aria-label',tr('flowerBook')+' · '+unlocked+'/'+total);
-    open.title=tr('flowerBook');
+    open.title=tr('flowerBook')+' · '+unlocked+'/'+total;
   }
   function renderBook(focusSelected){
     var langIndex={fr:1,en:2,es:3,ja:4}[language]||1;
@@ -90,16 +103,16 @@
     var active;
     flowerPlates.forEach(function(row,i){
       var known=i<unlocked;
-      var button=node('button',String(i+1).padStart(2,'0')+' · '+(known?row[langIndex]:'—'));
+      var button=node('button',String(i+1).padStart(2,'0')+' · '+(known?row[langIndex]:'🔒 '+tr('flowerUnknown')));
       button.type='button';button.disabled=!known;
       if(!known) button.setAttribute('aria-label',(i+1)+' · '+tr('flowerUnknown'));
       if(known && i===selected){button.setAttribute('aria-current','true');active=button;}
-      button.addEventListener('click',function(){selected=i;renderBook(true);});
+      if(known) button.addEventListener('click',function(){selected=i;renderBook(true);});
       list.appendChild(button);
     });
     if(unlocked){
       var row=flowerPlates[selected];
-      plate.append(illustration(row,selected),node('h3',row[langIndex]),node('p',row[langIndex+4]));
+      plate.append(artwork(row,selected,row[langIndex]),node('h3',row[langIndex]),node('p',row[langIndex+4]));
     }else{
       plate.append(node('span','✿','flower-book-empty'),node('p',tr('flowerBookHint')));
     }
