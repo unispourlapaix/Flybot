@@ -332,9 +332,19 @@ if(sandbox.state.score!==250 || sandbox.state.lives!==3) throw new Error('Ennemi
 for(let i=0;i<3;i++){
  const f={x:200,y:455,kind:i};const previous=sandbox.state.score;
  sandbox.collectMeadowFlower(f);
- if(sandbox.state.butterfly.color!==sandbox.meadowKinds[i].color || sandbox.state.score!==previous+150 || f.x<1000) throw new Error('Fleur de prairie incorrecte.');
+ if(sandbox.state.butterfly.color!==sandbox.meadowKinds[i].color || sandbox.state.score!==previous+150 || f.x!==200 || f.kind!==i || !f.pollinated) throw new Error('Fleur de prairie incorrecte.');
 }
-if(sandbox.state.flowersCollected!==3) throw new Error('Ennemis confondus avec les fleurs.');
+const pollinatedMeadow={x:200,y:455,kind:0};
+const meadowScore=sandbox.state.score;
+sandbox.state.fireworks=[];
+sandbox.collectMeadowFlower(pollinatedMeadow);
+sandbox.collectMeadowFlower(pollinatedMeadow);
+if(sandbox.state.score!==meadowScore+150 || sandbox.state.fireworks.length!==12 || sandbox.state.fireworks.some(p=>!p.heart)) throw new Error('Pétales en cœur ou butinage unique incorrect.');
+pollinatedMeadow.x=-51;
+sandbox.state.meadowFlowers=[pollinatedMeadow];
+sandbox.updateMeadowFlowers();
+if(pollinatedMeadow.pollinated || pollinatedMeadow.x<1100) throw new Error('Fleur non renouvelée après sa sortie.');
+if(sandbox.state.flowersCollected!==4) throw new Error('Ennemis confondus avec les fleurs.');
 const expected=[[.001,'alien'],[.005,'ufo'],[.15,'hornet'],[.5,'bird'],[.9,'rock']];
 for(const [roll,type] of expected){
  if(sandbox.enemyType(roll)!==type) throw new Error('Rareté incorrecte.');
@@ -426,3 +436,33 @@ if(!sandbox.state.beeCheer || sandbox.state.beeCheer.life!==100) throw new Error
 sandbox.drawBeeCheer();sandbox.resetGame();
 if(sandbox.state.beeCheer) throw new Error('Abeille non réinitialisée.');
 console.log('OK: abeille Whes après collecte et nettoyage à la reprise.');
+
+function bookNode(){
+  return {children:[],textContent:'',setAttribute:noop,focus:noop,addEventListener(name,fn){this[name]=fn;},
+    replaceChildren(){this.children=[];},appendChild(el){this.children.push(el);},append(...els){this.children.push(...els);}};
+}
+for(const id of ['flower-book','flower-book-open','flower-book-list','flower-book-plate','flower-book-count']) elements.set(id,bookNode());
+const book=elements.get('flower-book');
+book.showModal=()=>{book.open=true;};
+sandbox.document.createElement=bookNode;
+sandbox.document.createElementNS=bookNode;
+function loadHerbarium(){
+  for(const name of ['herbarium-data.js','herbarium.js']) new vm.Script(readFileSync(new URL('../'+name,import.meta.url),'utf8')).runInContext(sandbox);
+}
+loadHerbarium();
+if(sandbox.flowerPlates.length!==32 || new Set(sandbox.flowerPlates.map(row=>row[0])).size!==32) throw new Error('Catalogue incomplet.');
+sandbox.collectFlower({x:200,y:270},100);
+sandbox.resetGame();
+loadHerbarium();
+elements.get('flower-book-open').click();
+const bookPlate=elements.get('flower-book-plate'),bookList=elements.get('flower-book-list');
+if(elements.get('flower-book-count').textContent!=='1 / 32' || bookList.children.filter(el=>!el.disabled).length!==1 || bookPlate.children.length!==3) throw new Error('Découverte ou restauration incorrecte.');
+const flightBeforeBook=sandbox.state.t;frame();
+if(sandbox.state.t!==flightBeforeBook) throw new Error('Le vol continue pendant la lecture.');
+sandbox.setLanguage('ja');
+if(bookPlate.children[1].textContent!=='エーデルワイス') throw new Error('Planche non traduite.');
+book.open=false;book.close();
+for(let i=0;i<33;i++) sandbox.collectFlower({x:200,y:270},100);
+elements.get('flower-book-open').click();
+if(elements.get('flower-book-count').textContent!=='32 / 32' || bookList.children.some(el=>el.disabled)) throw new Error('Plafond des découvertes incorrect.');
+console.log('OK: herbier 32 planches, déblocage par butinage, sauvegarde, pause et traduction.');

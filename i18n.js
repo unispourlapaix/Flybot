@@ -296,6 +296,18 @@ translations.es["tiltSensitivity"]="Sensibilidad de los sensores";
 translations.es["tiltSensitivityHelp"]="50 %: suave • 100 %: normal • 200 %: sensible";
 translations.ja["tiltSensitivity"]="センサー感度";
 translations.ja["tiltSensitivityHelp"]="50 %：ゆっくり・100 %：標準・200 %：敏感";
+translations.fr["flowerBook"]="Herbier des fleurs";
+translations.fr["flowerUnknown"]="Fleur inconnue";
+translations.fr["flowerBookHint"]="Butine une fleur pour ouvrir ta première planche.";
+translations.en["flowerBook"]="Flower herbarium";
+translations.en["flowerUnknown"]="Undiscovered flower";
+translations.en["flowerBookHint"]="Pollinate a flower to reveal your first plate.";
+translations.es["flowerBook"]="Herbario de flores";
+translations.es["flowerUnknown"]="Flor sin descubrir";
+translations.es["flowerBookHint"]="Poliniza una flor para revelar tu primera lámina.";
+translations.ja["flowerBook"]="花の図鑑";
+translations.ja["flowerUnknown"]="未発見の花";
+translations.ja["flowerBookHint"]="花を受粉させると、最初の図版が開きます。";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function setIconButton(button,icon,label){
@@ -321,5 +333,6 @@ function setLanguage(value){
   shareStatus.textContent='';shareFallback.hidden=true;
   if(typeof refreshMusicLanguage==='function') refreshMusicLanguage();
   if(typeof refreshMobileLanguage==='function') refreshMobileLanguage();
+  if(typeof window.refreshFlowerBook==='function') window.refreshFlowerBook();
   updateHud();
 }
