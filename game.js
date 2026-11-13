@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.11.13.7';
+var BUILD_VERSION = '2026.11.13.8';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -61,7 +61,7 @@ var soundEnabled=false, soundPool={}, soundButton=document.getElementById('sound
 function playSound(name){
   if(!soundEnabled || !window.Audio) return;
   var clip=soundPool[name];
-  if(!clip){clip=new window.Audio('audio/'+name+'.wav');clip.volume=0.45;soundPool[name]=clip;}
+  if(!clip){clip=new window.Audio('audio/'+name+'.wav');clip.volume=name==='abeille-tin'?0.16:0.45;soundPool[name]=clip;}
   clip.currentTime=0;
   var playing=clip.play();if(playing && playing.catch) playing.catch(function(){});
 }
@@ -546,7 +546,7 @@ function collectFlower(f,points,petalColor){
   state.flowersCollected++;
   if(typeof window.recordPollination==='function') window.recordPollination();
   state.beeCheer={x:clamp(f.x,75,820),y:clamp(f.y-55,90,400),life:100};
-  playSound('abeille-whes');
+  playSound('abeille-tin');
   if(state.flowersCollected%50===0){
     state.heartRobots.push({x:1020,y:rand(180,390),phase:rand(0,Math.PI*2),fullHint:false});
   }
