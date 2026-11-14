@@ -1,0 +1,30 @@
+{
+  "id": "./",
+  "name": "Flybot",
+  "short_name": "Flybot",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#142239",
+  "theme_color": "#142239",
+  "icons": [
+    {
+      "src": "images/icons/flybot-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icons/flybot-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icons/flybot-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
