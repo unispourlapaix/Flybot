@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.11.25.1';
+var BUILD_VERSION = '2026.11.25.2';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');

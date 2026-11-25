@@ -473,7 +473,9 @@ elements.get('flower-book-open').click();
 if(elements.get('flower-book-count').textContent!=='88 / 88' || bookList.children.some(el=>el.disabled)) throw new Error('Plafond des découvertes incorrect.');
 console.log('OK: herbier 88 planches, déblocage par butinage, sauvegarde, pause et traduction.');
 
-for(const id of ['launch-panel','launch-game']) elements.set(id,bookNode());
+let tapToStart;
+const canvasListenerBeforeLaunch=sandbox.canvas.addEventListener;
+sandbox.canvas.addEventListener=(name,fn)=>{if(name==='click') tapToStart=fn;};
 sandbox.window.setTimeout=noop;
 let sensorStarts=0,musicStarts=0,fullscreenStarts=0;
 sandbox.enableTilt=async()=>{sensorStarts++;};
@@ -485,12 +487,17 @@ if(sandbox.gameplayReady || !sandbox.landscapeRequired) throw new Error('Démarr
 const tBeforeLaunch=sandbox.state.t;
 sandbox.update();
 if(sandbox.state.t!==tBeforeLaunch) throw new Error('Jeu actif derrière le lancement.');
-await sandbox.launchGame();
-if(!sandbox.gameplayReady || !elements.get('launch-panel').hidden || sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Lancement centralisé incorrect.');
+if(typeof tapToStart!=='function') throw new Error('Démarrage au toucher absent.');
+await tapToStart();
+if(!sandbox.gameplayReady || sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Lancement centralisé incorrect.');
 sandbox.savePreference('sound',false);
 sandbox.savePreference('music',false);
 if(sandbox.readPreference('sound',true)!==false || sandbox.readPreference('music',true)!==false) throw new Error('Préférences audio non sauvegardées.');
 sandbox.savePreference('tilt',false);sandbox.savePreference('fullscreen',false);
-await sandbox.launchGame();
+await tapToStart();
 if(sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Préférences ignorées au lancement.');
 console.log('OK: lancement centralisé, pause initiale, paysage et sauvegarde indépendante des préférences.');
+
+sandbox.canvas.addEventListener=canvasListenerBeforeLaunch;
+if(readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('id="launch-panel"')) throw new Error('Écran de lancement encore présent.');
+console.log('OK: lancement silencieux au premier toucher, sans écran ni bouton de lancement.');
