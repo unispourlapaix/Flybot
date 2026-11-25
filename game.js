@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.11.13.8';
+var BUILD_VERSION = '2026.11.25.1';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -57,7 +57,7 @@ shareButton.addEventListener('click',function(){
 });
 
 // Lecture activée uniquement après une action volontaire du joueur.
-var soundEnabled=false, soundPool={}, soundButton=document.getElementById('sound');
+var soundEnabled=readPreference('sound',true)!==false, soundPool={}, soundButton=document.getElementById('sound');
 function playSound(name){
   if(!soundEnabled || !window.Audio) return;
   var clip=soundPool[name];
@@ -66,7 +66,7 @@ function playSound(name){
   var playing=clip.play();if(playing && playing.catch) playing.catch(function(){});
 }
 soundButton.addEventListener('click',function(){
-  soundEnabled=!soundEnabled;
+  soundEnabled=!soundEnabled;savePreference('sound',soundEnabled);
   soundButton.textContent=soundEnabled?tr('Son : activé'):tr('Son : coupé');
   soundButton.setAttribute('aria-pressed',String(soundEnabled));
   if(soundEnabled) playSound('envol');
@@ -154,6 +154,7 @@ function stopTilt(message){
   controlStatus.textContent=message || tr('Souris, doigt ou flèches / ZQSD');
 }
 function startDefaultTilt(){
+  if(readPreference('tilt',true)===false) return;
   var sensor=window.DeviceOrientationEvent;
   tilt.autoPending=!!(window.isSecureContext && sensor && typeof sensor.requestPermission!=='function');
 }
@@ -176,9 +177,9 @@ function handleOrientation(e){
   controlStatus.textContent=tr('Incline pour voler • position de départ calibrée');
 }
 window.addEventListener('deviceorientation',handleOrientation);
-tiltButton.addEventListener('click',async function(){
+async function enableTilt(){
   tilt.autoPending=false;
-  if(tilt.enabled){stopTilt();return;}
+  if(tilt.enabled) return;
   if(!window.isSecureContext){stopTilt(tr('Inclinaison : ouvre le jeu en HTTPS ou localhost.'));return;}
   var sensor=window.DeviceOrientationEvent;
   if(!sensor){stopTilt(tr('Capteurs indisponibles : utilise le doigt ou les flèches.'));return;}
@@ -191,6 +192,10 @@ tiltButton.addEventListener('click',async function(){
     controlStatus.textContent=tr('Tiens le téléphone confortablement : calibration…');
     window.setTimeout(function(){if(tilt.enabled && !tilt.neutral) stopTilt(tr('Aucune donnée capteur : utilise le doigt ou les flèches.'));},4000);
   }catch(error){stopTilt(tr('Capteurs indisponibles : utilise le doigt ou les flèches.'));}
+}
+tiltButton.addEventListener('click',function(){
+  if(tilt.enabled || tilt.autoPending){savePreference('tilt',false);stopTilt();}
+  else{savePreference('tilt',true);enableTilt();}
 });
 canvas.addEventListener('click',function(){ if(state.gameOver) resetGame(); });
 
@@ -672,7 +677,7 @@ function drawScanlines(){
 
 function update(){
   updateFireworks();
-  if(state.gameOver || (typeof shareCardOpen!=='undefined' && shareCardOpen) ||
+  if((typeof gameplayReady!=='undefined' && !gameplayReady) || state.gameOver || (typeof shareCardOpen!=='undefined' && shareCardOpen) ||
     (typeof window.flowerBookIsOpen==='function' && window.flowerBookIsOpen())) return;
   state.t++;
   if(state.beeCheer && --state.beeCheer.life<=0) state.beeCheer=null;

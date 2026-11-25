@@ -308,6 +308,22 @@ translations.es["flowerBookHint"]="Poliniza una flor para revelar tu primera lá
 translations.ja["flowerBook"]="花の図鑑";
 translations.ja["flowerUnknown"]="未発見の花";
 translations.ja["flowerBookHint"]="花を受粉させると、最初の図版が開きます。";
+translations.fr["musicOn"]="Musique : activée";
+translations.fr["musicOff"]="Musique : coupée";
+translations.fr["launchPlay"]="Commencer le vol";
+translations.fr["launchHint"]="Un toucher pour voler en paysage, avec musique et capteurs.";
+translations.en["musicOn"]="Music: on";
+translations.en["musicOff"]="Music: off";
+translations.en["launchPlay"]="Start flying";
+translations.en["launchHint"]="Tap to fly in landscape with music and tilt controls.";
+translations.es["musicOn"]="Música: activada";
+translations.es["musicOff"]="Música: desactivada";
+translations.es["launchPlay"]="Empezar a volar";
+translations.es["launchHint"]="Toca para volar en horizontal con música y sensores.";
+translations.ja["musicOn"]="音楽：オン";
+translations.ja["musicOff"]="音楽：オフ";
+translations.ja["launchPlay"]="フライト開始";
+translations.ja["launchHint"]="タップして横画面で飛ぼう。音楽と傾き操作も開始します。";
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function setIconButton(button,icon,label){

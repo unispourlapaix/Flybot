@@ -26,6 +26,7 @@ const sandbox = {
   window: { addEventListener: noop, devicePixelRatio: 1 },
 };
 vm.createContext(sandbox);
+new vm.Script(readFileSync(new URL('../preferences.js',import.meta.url),'utf8')).runInContext(sandbox);
 new vm.Script(readFileSync(new URL('../i18n.js', import.meta.url), 'utf8')).runInContext(sandbox);
 new vm.Script(source, { filename: 'game.js' }).runInContext(sandbox);
 if (typeof frame !== 'function') throw new Error('La boucle de jeu ne programme aucune frame.');
@@ -207,7 +208,7 @@ for(let i=0;i<100;i++) if(sandbox.wingOpening(i)<0.22 || sandbox.wingOpening(i)>
 console.log('OK: ailes animées et objectif de 888 fleurs, dépassement et reprise.');
 
 const musicEvents={};let musicPlays=0;
-for(const id of ['music-player','music-track','music-status','music-panel','music-download']) elements.set(id,{setAttribute:noop,addEventListener:noop});
+for(const id of ['music-toggle','music-player','music-track','music-status','music-panel','music-download']) elements.set(id,{setAttribute:noop,addEventListener:noop});
 Object.assign(elements.get('music-player'),{pause:noop,load:noop,play:()=>{musicPlays++;return Promise.resolve();},addEventListener:(name,fn)=>musicEvents[name]=fn});
 new vm.Script(readFileSync(new URL('../music.js',import.meta.url),'utf8')).runInContext(sandbox);
 if(musicPlays) throw new Error('Lecture sans action utilisateur.');
@@ -471,3 +472,25 @@ for(let i=0;i<47;i++) sandbox.collectFlower({x:200,y:270},100);
 elements.get('flower-book-open').click();
 if(elements.get('flower-book-count').textContent!=='88 / 88' || bookList.children.some(el=>el.disabled)) throw new Error('Plafond des découvertes incorrect.');
 console.log('OK: herbier 88 planches, déblocage par butinage, sauvegarde, pause et traduction.');
+
+for(const id of ['launch-panel','launch-game']) elements.set(id,bookNode());
+sandbox.window.setTimeout=noop;
+let sensorStarts=0,musicStarts=0,fullscreenStarts=0;
+sandbox.enableTilt=async()=>{sensorStarts++;};
+sandbox.playMusic=()=>{musicStarts++;return Promise.resolve();};
+sandbox.enterGameFullscreen=async()=>{fullscreenStarts++;};
+settings.delete('flybot-tilt');settings.delete('flybot-fullscreen');
+new vm.Script(readFileSync(new URL('../launch.js',import.meta.url),'utf8')).runInContext(sandbox);
+if(sandbox.gameplayReady || !sandbox.landscapeRequired) throw new Error('Démarrage non protégé.');
+const tBeforeLaunch=sandbox.state.t;
+sandbox.update();
+if(sandbox.state.t!==tBeforeLaunch) throw new Error('Jeu actif derrière le lancement.');
+await sandbox.launchGame();
+if(!sandbox.gameplayReady || !elements.get('launch-panel').hidden || sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Lancement centralisé incorrect.');
+sandbox.savePreference('sound',false);
+sandbox.savePreference('music',false);
+if(sandbox.readPreference('sound',true)!==false || sandbox.readPreference('music',true)!==false) throw new Error('Préférences audio non sauvegardées.');
+sandbox.savePreference('tilt',false);sandbox.savePreference('fullscreen',false);
+await sandbox.launchGame();
+if(sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Préférences ignorées au lancement.');
+console.log('OK: lancement centralisé, pause initiale, paysage et sauvegarde indépendante des préférences.');

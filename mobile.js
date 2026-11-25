@@ -16,7 +16,7 @@ function fitMobileCanvas(){
   document.documentElement.style.setProperty('--app-height',(viewport?viewport.height:window.innerHeight)+'px');
   var stage=document.getElementById('game-stage');
   var wasPortrait=portraitCanvas;
-  portraitCanvas=immersive && stage.clientHeight>stage.clientWidth;
+  portraitCanvas=(immersive || (typeof landscapeRequired!=='undefined' && landscapeRequired)) && stage.clientHeight>stage.clientWidth;
   if(wasPortrait!==portraitCanvas && typeof tilt!=='undefined'){tilt.neutral=null;tilt.x=0;tilt.y=0;}
   stage.classList.toggle('portrait-game',portraitCanvas);
   var availableWidth=portraitCanvas?stage.clientHeight:stage.clientWidth;
@@ -28,6 +28,14 @@ function setImmersive(value){
   immersive=value;document.body.classList.toggle('immersive',value);
   refreshMobileLanguage();window.requestAnimationFrame(fitMobileCanvas);
 }
+async function lockLandscape(){
+  try{if(window.screen && window.screen.orientation && window.screen.orientation.lock) await window.screen.orientation.lock('landscape');}catch(error){}
+}
+async function enterGameFullscreen(){
+  var enter=document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+  if(!nativeFullscreen() && enter){try{await enter.call(document.documentElement);}catch(error){}}
+  setImmersive(true);await lockLandscape();
+}
 async function toggleFullscreen(){
   if(fullscreenBusy) return;
   fullscreenBusy=true;
@@ -35,12 +43,11 @@ async function toggleFullscreen(){
     if(immersive || nativeFullscreen()){
       var exit=document.exitFullscreen || document.webkitExitFullscreen;
       if(nativeFullscreen() && exit) await exit.call(document);
-      setImmersive(false);
+      savePreference('fullscreen',false);setImmersive(false);
     }else{
       settingsPanel.hidden=true;settingsButton.setAttribute('aria-expanded','false');
-      var enter=document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
-      if(enter){try{await enter.call(document.documentElement);}catch(error){}}
-      setImmersive(true);
+      savePreference('fullscreen',true);
+      await enterGameFullscreen();
     }
   }finally{fullscreenBusy=false;}
 }

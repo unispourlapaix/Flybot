@@ -3,21 +3,30 @@ var musicPlayer=document.getElementById('music-player');
 var musicSelect=document.getElementById('music-track');
 var musicStatus=document.getElementById('music-status');
 var musicIndex=0,musicFallback=false,musicErrorKey='';
-musicPlayer.volume=0.35;
+var musicEnabled=readPreference('music',true)!==false;
+var musicButton=document.getElementById('music-toggle');
+var savedVolume=readPreference('music-volume',0.35);
+musicPlayer.volume=typeof savedVolume==='number' && savedVolume>=0 && savedVolume<=1?savedVolume:0.35;
+
 function refreshMusicLanguage(){
   musicPlayer.setAttribute('aria-label',tr('musicPlayer'));
   document.getElementById('music-panel').setAttribute('aria-label',tr('musicLabel'));
   musicStatus.textContent=musicErrorKey?tr(musicErrorKey):'';
+  musicButton.textContent=tr(musicEnabled?'musicOn':'musicOff');
+  musicButton.setAttribute('aria-pressed',String(musicEnabled));
 }
 function playMusic(){
+  if(!musicEnabled) return Promise.resolve();
   var result=musicPlayer.play();
-  if(result && result.catch) result.catch(function(error){
+  return result && result.catch?result.catch(function(error){
     if(error.name==='AbortError') return;
     musicErrorKey='musicPlayHint';refreshMusicLanguage();
-  });
+  }):Promise.resolve();
 }
 function selectMusic(index,resume){
+  if(!Number.isInteger(index)) index=0;
   musicIndex=(index+musicTracks.length)%musicTracks.length;
+  savePreference('music-track',musicIndex);
   musicFallback=false;musicErrorKey='';
   musicSelect.value=String(musicIndex);
   musicPlayer.pause();
@@ -34,3 +43,12 @@ musicPlayer.addEventListener('error',function(){
     musicFallback=true;musicPlayer.src='audio/'+musicTracks[musicIndex]+'.mp3';musicPlayer.load();playMusic();
   }else{musicErrorKey='musicError';refreshMusicLanguage();}
 });
+
+musicButton.addEventListener('click',function(){
+ musicEnabled=!musicEnabled;savePreference('music',musicEnabled);
+ if(musicEnabled) playMusic();else musicPlayer.pause();
+ refreshMusicLanguage();
+});
+musicPlayer.addEventListener('volumechange',function(){savePreference('music-volume',musicPlayer.volume);});
+musicPlayer.addEventListener('play',function(){if(!musicEnabled){musicEnabled=true;savePreference('music',true);refreshMusicLanguage();}});
+selectMusic(readPreference('music-track',0),false);
