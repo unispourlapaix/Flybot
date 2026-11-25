@@ -1,4 +1,4 @@
-var BUILD_VERSION = '2026.11.25.2';
+var BUILD_VERSION = '2026.11.25.3';
 console.info('Flybot build ' + BUILD_VERSION);
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
@@ -58,10 +58,18 @@ shareButton.addEventListener('click',function(){
 
 // Lecture activée uniquement après une action volontaire du joueur.
 var soundEnabled=readPreference('sound',true)!==false, soundPool={}, soundButton=document.getElementById('sound');
+function effectVolume(name){
+  var reference=typeof musicPlayer!=='undefined' && Number.isFinite(musicPlayer.volume)?musicPlayer.volume:0.35;
+  return reference*0.60*(name==='abeille-tin'?0.35:1);
+}
+function syncEffectVolumes(){
+  Object.keys(soundPool).forEach(function(name){soundPool[name].volume=effectVolume(name);});
+}
 function playSound(name){
   if(!soundEnabled || !window.Audio) return;
   var clip=soundPool[name];
-  if(!clip){clip=new window.Audio('audio/'+name+'.wav');clip.volume=name==='abeille-tin'?0.16:0.45;soundPool[name]=clip;}
+  if(!clip){clip=new window.Audio('audio/'+name+'.wav');soundPool[name]=clip;}
+  clip.volume=effectVolume(name);
   clip.currentTime=0;
   var playing=clip.play();if(playing && playing.catch) playing.catch(function(){});
 }

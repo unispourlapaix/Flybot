@@ -501,3 +501,10 @@ console.log('OK: lancement centralisé, pause initiale, paysage et sauvegarde in
 sandbox.canvas.addEventListener=canvasListenerBeforeLaunch;
 if(readFileSync(new URL('../index.html',import.meta.url),'utf8').includes('id="launch-panel"')) throw new Error('Écran de lancement encore présent.');
 console.log('OK: lancement silencieux au premier toucher, sans écran ni bouton de lancement.');
+
+sandbox.musicPlayer.volume=0.5;
+if(Math.abs(sandbox.effectVolume('bonus-pok')-0.3)>.000001) throw new Error('Écart de volume incorrect.');
+if(sandbox.effectVolume('abeille-tin')>=0.3) throw new Error('Abeille trop forte.');
+sandbox.soundPool.test={volume:1};sandbox.musicPlayer.volume=0.2;sandbox.syncEffectVolumes();
+if(Math.abs(sandbox.soundPool.test.volume-0.12)>.000001) throw new Error('Effets non synchronisés.');
+console.log('OK: effets à 60 % du volume musical et abeille atténuée.');

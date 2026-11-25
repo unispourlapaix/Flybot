@@ -49,6 +49,6 @@ musicButton.addEventListener('click',function(){
  if(musicEnabled) playMusic();else musicPlayer.pause();
  refreshMusicLanguage();
 });
-musicPlayer.addEventListener('volumechange',function(){savePreference('music-volume',musicPlayer.volume);});
+musicPlayer.addEventListener('volumechange',function(){savePreference('music-volume',musicPlayer.volume);if(typeof syncEffectVolumes==='function') syncEffectVolumes();});
 musicPlayer.addEventListener('play',function(){if(!musicEnabled){musicEnabled=true;savePreference('music',true);refreshMusicLanguage();}});
 selectMusic(readPreference('music-track',0),false);
