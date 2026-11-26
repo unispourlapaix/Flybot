@@ -255,7 +255,7 @@ new vm.Script(readFileSync(new URL('../mobile.js',import.meta.url),'utf8')).runI
 for(const [width,height] of [[390,600],[844,240],[320,300]]) {
   stage.clientWidth=width;stage.clientHeight=height;sandbox.fitMobileCanvas();
   const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);
-  if((sandbox.portraitCanvas?ch:cw)>width+.01 || (sandbox.portraitCanvas?cw:ch)>height+.01 || Math.abs(cw/ch-16/9)>.001) throw new Error('Canvas mobile déformé ou débordant.');
+  if((sandbox.portraitCanvas?ch:cw)>width+.01 || (sandbox.portraitCanvas?cw:ch)>height+.01) throw new Error('Canvas mobile déformé ou débordant.');
 }
 await sandbox.toggleFullscreen();
 if(!sandbox.immersive || !elements.get('controls').hidden) throw new Error('Repli immersif incorrect.');
@@ -518,3 +518,6 @@ for(const id of ['fullscreen','toggle-controls']){
  if(!button.innerHTML.includes('viewBox="0 0 24 24"')) throw new Error('Icône non harmonisée.');
 }
 console.log('OK: sortie du plein écran en pause, reprise au toucher et icônes SVG cohérentes.');
+
+for(const [w,h] of [[844,390],[390,844],[1366,768]]){stage.clientWidth=w;stage.clientHeight=h;sandbox.fitMobileCanvas();const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);if((sandbox.portraitCanvas?ch:cw)!==w || (sandbox.portraitCanvas?cw:ch)!==h) throw new Error('Le jeu ne remplit pas tout l’écran.');}
+console.log('OK: écran rempli en portrait/paysage sans découpe des coordonnées du jeu.');

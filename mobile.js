@@ -22,8 +22,7 @@ function fitMobileCanvas(){
   stage.classList.toggle('portrait-game',portraitCanvas);
   var availableWidth=portraitCanvas?stage.clientHeight:stage.clientWidth;
   var availableHeight=portraitCanvas?stage.clientWidth:stage.clientHeight;
-  var width=Math.min(availableWidth,availableHeight*16/9);
-  if(width>0){canvas.style.width=width+'px';canvas.style.height=width*9/16+'px';}
+  if(availableWidth>0 && availableHeight>0){canvas.style.width=availableWidth+'px';canvas.style.height=availableHeight+'px';}
 }
 function setImmersive(value){
   immersive=value;document.body.classList.toggle('immersive',true);

@@ -327,16 +327,20 @@ translations.ja["launchHint"]="タップして横画面で飛ぼう。音楽と�
 var language='fr';
 try { var savedLanguage=window.localStorage.getItem('flybot-language'); if(translations[savedLanguage]) language=savedLanguage; } catch(error){}
 function setIconButton(button,icon,label){
-  var paths={
-    '⛶':'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
-    '↙':'M3 8h5V3m13 5h-5V3M8 21v-5H3m13 5v-5h5',
-    '⚙':'M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
-    '✕':'m6 6 12 12M18 6 6 18',
-    '▣':'M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2 M10 17h4 M3 8l-2 4 2 4m18-8 2 4-2 4',
-    'flower':'M12 9C4-1 0 9 9 12c-12 4-3 13 3 3 6 10 15 1 3-3 9-3 5-13-3-3Z M14 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0'
+  var pixels={
+    '⛶':['1100011','1000001','0000000','0000000','0000000','1000001','1100011'],
+    '↙':['0010100','0110110','1100011','0000000','1100011','0110110','0010100'],
+    '⚙':['0011100','0101010','1100011','1010101','1100011','0101010','0011100'],
+    '✕':['1000001','0100010','0010100','0001000','0010100','0100010','1000001'],
+    '▣':['0011100','0100010','0101010','0101010','0101010','0100010','0011100'],
+    'flower':['0011100','0011100','1111111','1110111','1111111','0011100','0011100']
   };
+  var rows=pixels[icon] || pixels['⚙'],rects='';
+  rows.forEach(function(row,y){row.split('').forEach(function(on,x){
+    if(on==='1') rects+='<rect x="'+(x*3+2)+'" y="'+(y*3+2)+'" width="3" height="3"/>';
+  });});
   button.textContent='';
-  button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="'+(paths[icon] || paths['⚙'])+'"/></svg>';
+  button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor" shape-rendering="crispEdges">'+rects+'</svg>';
   button.setAttribute('aria-label',label);button.setAttribute('title',label);
 }
 
