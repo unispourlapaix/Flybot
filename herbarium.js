@@ -93,7 +93,7 @@
     return frame;
   }
   function refreshBadge(){
-    open.setAttribute('aria-label',tr('flowerBook')+' · '+unlocked+'/'+total);
+    setIconButton(open,'flower',tr('flowerBook')+' · '+unlocked+'/'+total);
     open.title=tr('flowerBook')+' · '+unlocked+'/'+total;
   }
   function renderBook(focusSelected){

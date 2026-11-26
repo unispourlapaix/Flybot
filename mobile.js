@@ -6,8 +6,9 @@ var immersive=false,fullscreenBusy=false,portraitCanvas=false;
 settingsPanel.hidden=true;
 function nativeFullscreen(){return document.fullscreenElement || document.webkitFullscreenElement;}
 function refreshMobileLanguage(){
-  setIconButton(fullscreenButton,immersive?'↙':'⛶',tr(immersive?'fullscreenExit':'fullscreenEnter'));
-  fullscreenButton.setAttribute('aria-pressed',String(immersive));
+  var active=!!nativeFullscreen();
+  setIconButton(fullscreenButton,active?'↙':'⛶',tr(active?'fullscreenExit':'fullscreenEnter'));
+  fullscreenButton.setAttribute('aria-pressed',String(active));
   setIconButton(settingsButton,settingsPanel.hidden?'⚙':'✕',tr(settingsPanel.hidden?'settingsOpen':'settingsClose'));
   fullscreenStatus.textContent=immersive && !nativeFullscreen()?tr('fullscreenFallback'):'';
 }
@@ -16,7 +17,7 @@ function fitMobileCanvas(){
   document.documentElement.style.setProperty('--app-height',(viewport?viewport.height:window.innerHeight)+'px');
   var stage=document.getElementById('game-stage');
   var wasPortrait=portraitCanvas;
-  portraitCanvas=(immersive || (typeof landscapeRequired!=='undefined' && landscapeRequired)) && stage.clientHeight>stage.clientWidth;
+  portraitCanvas=stage.clientHeight>stage.clientWidth;
   if(wasPortrait!==portraitCanvas && typeof tilt!=='undefined'){tilt.neutral=null;tilt.x=0;tilt.y=0;}
   stage.classList.toggle('portrait-game',portraitCanvas);
   var availableWidth=portraitCanvas?stage.clientHeight:stage.clientWidth;
@@ -25,7 +26,8 @@ function fitMobileCanvas(){
   if(width>0){canvas.style.width=width+'px';canvas.style.height=width*9/16+'px';}
 }
 function setImmersive(value){
-  immersive=value;document.body.classList.toggle('immersive',value);
+  immersive=value;document.body.classList.toggle('immersive',true);
+  if(!value && typeof gameplayReady!=='undefined') gameplayReady=false;
   refreshMobileLanguage();window.requestAnimationFrame(fitMobileCanvas);
 }
 async function lockLandscape(){
@@ -40,13 +42,12 @@ async function toggleFullscreen(){
   if(fullscreenBusy) return;
   fullscreenBusy=true;
   try{
-    if(immersive || nativeFullscreen()){
+    if(nativeFullscreen()){
       var exit=document.exitFullscreen || document.webkitExitFullscreen;
       if(nativeFullscreen() && exit) await exit.call(document);
-      savePreference('fullscreen',false);setImmersive(false);
+      setImmersive(false);
     }else{
       settingsPanel.hidden=true;settingsButton.setAttribute('aria-expanded','false');
-      savePreference('fullscreen',true);
       await enterGameFullscreen();
     }
   }finally{fullscreenBusy=false;}

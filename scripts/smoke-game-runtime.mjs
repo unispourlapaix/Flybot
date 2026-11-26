@@ -255,16 +255,16 @@ new vm.Script(readFileSync(new URL('../mobile.js',import.meta.url),'utf8')).runI
 for(const [width,height] of [[390,600],[844,240],[320,300]]) {
   stage.clientWidth=width;stage.clientHeight=height;sandbox.fitMobileCanvas();
   const cw=parseFloat(sandbox.canvas.style.width),ch=parseFloat(sandbox.canvas.style.height);
-  if(cw>width+.01 || ch>height+.01 || Math.abs(cw/ch-16/9)>.001) throw new Error('Canvas mobile déformé ou débordant.');
+  if((sandbox.portraitCanvas?ch:cw)>width+.01 || (sandbox.portraitCanvas?cw:ch)>height+.01 || Math.abs(cw/ch-16/9)>.001) throw new Error('Canvas mobile déformé ou débordant.');
 }
 await sandbox.toggleFullscreen();
 if(!sandbox.immersive || !elements.get('controls').hidden) throw new Error('Repli immersif incorrect.');
-await sandbox.toggleFullscreen();
+sandbox.setImmersive(false);
 if(sandbox.immersive) throw new Error('Sortie immersive impossible.');
 sandbox.document.documentElement.requestFullscreen=async()=>{throw new Error('Refus navigateur');};
 await sandbox.toggleFullscreen();
 if(!sandbox.immersive) throw new Error('Refus plein écran sans repli.');
-await sandbox.toggleFullscreen();
+sandbox.setImmersive(false);
 sandbox.document.documentElement.requestFullscreen=async()=>{sandbox.document.fullscreenElement=sandbox.document.documentElement;};
 sandbox.document.exitFullscreen=async()=>{sandbox.document.fullscreenElement=null;};
 await sandbox.toggleFullscreen();
@@ -415,7 +415,7 @@ console.log('OK: sensibilité 50–200 %, zone neutre, limites et sauvegarde.');
 sandbox.setTiltSensitivity(null,false);
 if(sandbox.tiltSensitivity!==130 || elements.get('tilt-sensitivity').value!=='130') throw new Error('Défaut 130 % incorrect.');
 sandbox.refreshMobileLanguage();
-if(elements.get('fullscreen').textContent!=='⛶' || elements.get('toggle-controls').textContent.length>2) throw new Error('Commandes non iconifiées.');
+if(!elements.get('fullscreen').innerHTML.includes('<svg') || elements.get('toggle-controls').textContent.length>2) throw new Error('Commandes non iconifiées.');
 console.log('OK: défaut 130 % et commandes en icônes.');
 
 sandbox.resetGame();
@@ -495,7 +495,7 @@ sandbox.savePreference('music',false);
 if(sandbox.readPreference('sound',true)!==false || sandbox.readPreference('music',true)!==false) throw new Error('Préférences audio non sauvegardées.');
 sandbox.savePreference('tilt',false);sandbox.savePreference('fullscreen',false);
 await tapToStart();
-if(sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Préférences ignorées au lancement.');
+if(sensorStarts!==1 || fullscreenStarts!==1) throw new Error('Démarrage répété sans nécessité.');
 console.log('OK: lancement centralisé, pause initiale, paysage et sauvegarde indépendante des préférences.');
 
 sandbox.canvas.addEventListener=canvasListenerBeforeLaunch;
@@ -508,3 +508,13 @@ if(sandbox.effectVolume('abeille-tin')>=0.3) throw new Error('Abeille trop forte
 sandbox.soundPool.test={volume:1};sandbox.musicPlayer.volume=0.2;sandbox.syncEffectVolumes();
 if(Math.abs(sandbox.soundPool.test.volume-0.12)>.000001) throw new Error('Effets non synchronisés.');
 console.log('OK: effets à 60 % du volume musical et abeille atténuée.');
+
+sandbox.setImmersive(false);
+if(sandbox.gameplayReady) throw new Error('La partie continue hors plein écran.');
+await sandbox.launchGame();
+if(!sandbox.gameplayReady || fullscreenStarts!==2) throw new Error('Plein écran non redemandé à la reprise.');
+for(const id of ['fullscreen','toggle-controls']){
+ const button=elements.get(id);
+ if(!button.innerHTML.includes('viewBox="0 0 24 24"')) throw new Error('Icône non harmonisée.');
+}
+console.log('OK: sortie du plein écran en pause, reprise au toucher et icônes SVG cohérentes.');

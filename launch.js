@@ -7,7 +7,7 @@ async function launchGame(){
   var sensors=readPreference('tilt',true)!==false?enableTilt():Promise.resolve();
   if(soundEnabled) playSound('envol');
   var music=playMusic();
-  var screen=readPreference('fullscreen',true)!==false?enterGameFullscreen():Promise.resolve();
+  var screen=enterGameFullscreen();
   try{await Promise.allSettled([sensors,music,screen]);}
   finally{
     gameplayReady=true;launching=false;
@@ -18,3 +18,6 @@ canvas.addEventListener('click',launchGame);
 // Ungated sensor initialization and best-effort music playback at page load.
 startDefaultTilt();
 playMusic();
+
+// Keep the full-window landscape layout visible before the first gesture.
+setImmersive(true);
